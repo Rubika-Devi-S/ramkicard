@@ -1,0 +1,212 @@
+/* Ramki Cards — login-gated storefront actions */
+
+.storefront-login-button,
+.storefront-admin-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-width: 116px;
+}
+
+.storefront-login-copy {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  line-height: 1.05;
+}
+
+.storefront-login-copy small {
+  font-size: 9px;
+  font-weight: 500;
+  opacity: .82;
+}
+
+.storefront-login-copy strong {
+  font-size: 14px;
+}
+
+.storefront-login-icon {
+  font-size: 18px;
+}
+
+.store-account-menu {
+  position: relative;
+}
+
+.store-account-trigger {
+  min-height: 48px;
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  padding: 7px 11px;
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, .24);
+  border-radius: 13px;
+  background: rgba(255, 255, 255, .09);
+  cursor: pointer;
+  font: inherit;
+}
+
+.store-account-avatar {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  flex: 0 0 32px;
+  color: #641126;
+  border-radius: 50%;
+  background: #d9aa49;
+  font-weight: 800;
+}
+
+.store-account-copy {
+  max-width: 118px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  overflow: hidden;
+  line-height: 1.1;
+}
+
+.store-account-copy small {
+  font-size: 9px;
+  opacity: .82;
+}
+
+.store-account-copy strong {
+  max-width: 100%;
+  overflow: hidden;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.store-account-dropdown {
+  position: absolute;
+  z-index: 1200;
+  top: calc(100% + 10px);
+  right: 0;
+  width: 190px;
+  display: none;
+  padding: 8px;
+  border: 1px solid #ead5b5;
+  border-radius: 14px;
+  background: #fffdf8;
+  box-shadow: 0 18px 45px rgba(55, 12, 24, .18);
+}
+
+.store-account-menu.open .store-account-dropdown {
+  display: grid;
+}
+
+.store-account-dropdown a {
+  padding: 10px 11px;
+  color: #4e1824;
+  border-radius: 9px;
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.store-account-dropdown a:hover {
+  color: #fff;
+  background: #8b1231;
+}
+
+.store-account-dropdown .logout-link {
+  margin-top: 3px;
+  color: #b42337;
+  border-top: 1px solid #ead5b5;
+  border-radius: 0 0 9px 9px;
+}
+
+.login-required-card {
+  min-height: 315px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 34px 24px;
+  color: #352126;
+  border: 1px dashed #d4a04a;
+  border-radius: 20px;
+  background:
+    radial-gradient(
+      circle at top right,
+      rgba(218, 171, 78, .17),
+      transparent 36%
+    ),
+    #fffaf1;
+  text-align: center;
+}
+
+.login-required-icon {
+  width: 62px;
+  height: 62px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #8b1231, #c9963e);
+  box-shadow: 0 12px 30px rgba(111, 23, 27, .2);
+  font-size: 27px;
+}
+
+.login-required-card h3 {
+  margin: 0 0 7px;
+  font-size: clamp(22px, 3vw, 31px);
+}
+
+.login-required-card p {
+  max-width: 520px;
+  margin: 0;
+  color: #74656a;
+  line-height: 1.7;
+}
+
+.login-required-button {
+  margin-top: 5px;
+}
+
+.login-required-card small {
+  color: #8a777b;
+}
+
+.login-required-notice {
+  border-color: rgba(201, 150, 62, .45);
+  background: #fff7df;
+  color: #674311;
+}
+
+@media (max-width: 991.98px) {
+  .store-account-copy {
+    display: none;
+  }
+
+  .store-account-trigger {
+    min-width: 48px;
+    padding: 7px;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 575.98px) {
+  .storefront-login-copy small {
+    display: none;
+  }
+
+  .storefront-login-button,
+  .storefront-admin-button {
+    min-width: auto;
+    padding-inline: 12px;
+  }
+
+  .storefront-login-icon {
+    display: none;
+  }
+
+  .cart-link > span:not(.cart-count):first-child {
+    display: none;
+  }
+}

@@ -1,0 +1,120 @@
+RAMKI CARDS ROOT UNIFIED LOGIN UPDATE
+=====================================
+
+FINAL FOLDER RULE
+-----------------
+There is no customer account folder.
+
+Customer pages stay directly in the website root:
+
+login.php
+register.php
+logout.php
+my-account.php
+my-orders.php
+order-details.php
+my-favourites.php
+my-profile.php
+my-addresses.php
+cart.php
+
+Only the administration panel remains inside:
+
+admin/
+
+ONE LOGIN PAGE
+--------------
+The only real login form is:
+
+/login.php
+
+It automatically checks:
+
+1. admin_users + admin_roles
+2. customers
+
+Redirects:
+
+Super Admin / Admin / Staff -> admin/dashboard.php
+Customer                    -> my-account.php
+
+The file admin/login.php contains no login form. It only forwards old admin
+login links to the root login.php.
+
+REGISTRATION
+------------
+/register.php is only for customers.
+
+A new customer enters:
+
+First name
+Last name
+Mobile number
+Email (optional)
+Create password
+Confirm password
+
+If the mobile/email already exists in customers because of an enquiry or guest
+checkout, and password_hash is NULL, register.php adds the new password to that
+existing customer record instead of creating a duplicate customer.
+
+INSTALLATION
+------------
+1. Back up the project and database.
+
+2. Import:
+
+database/root_unified_login_update.sql
+
+3. Upload all files while keeping their relative paths.
+
+4. Replace:
+
+includes/storefront.php
+includes/storefront-auth.php
+includes/storefront-header.php
+includes/storefront-footer.php
+assets/css/storefront.css
+admin/includes/bootstrap.php
+admin/includes/auth.php
+admin/login.php
+admin/logout.php
+
+5. Keep the existing working:
+
+includes/db.php
+
+6. Delete the old customer folder when it exists:
+
+account/
+
+7. Delete old public customer auth files not used by this update:
+
+forgot-password.php
+reset-password.php
+
+8. Clear localhost cookies or use a private browser window because the shared
+session name is now:
+
+RAMKI_SESSION
+
+TEST
+----
+Customer:
+1. Open register.php.
+2. Create a customer account and password.
+3. Confirm redirect to my-account.php.
+4. Confirm the topbar shows the customer name.
+5. Confirm cart, favourites and orders show only that customer data.
+
+Admin/Staff:
+1. Open login.php.
+2. Enter an active admin_users email/mobile and password.
+3. Confirm redirect to admin/dashboard.php.
+4. Confirm the existing role permissions control admin menus.
+
+IMPORTANT
+---------
+All admin and storefront files must use RAMKI_SESSION. If an old admin bootstrap
+still uses RAMKI_ADMIN_SESSION, the root login will not stay logged in after the
+admin redirect.

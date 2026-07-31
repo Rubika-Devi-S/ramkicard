@@ -1,0 +1,267 @@
+/*
+|--------------------------------------------------------------------------
+| Ramki Cards runtime theme bridge
+|--------------------------------------------------------------------------
+| Load this file after admin.css and admin-layout-theme.css.
+| It prevents the legacy light-only styles from overriding database colours.
+*/
+
+html[data-theme] body {
+    color: var(--ui-text-main) !important;
+    background: var(--ui-body-bg) !important;
+}
+
+html[data-theme] .admin-shell,
+html[data-theme] .admin-main,
+html[data-theme] .admin-content {
+    color: var(--ui-text-main);
+    background: var(--ui-body-bg);
+}
+
+html[data-theme] #adminSidebar.admin-sidebar {
+    color: var(--ui-sidebar-text);
+    background: var(--ui-sidebar-bg) !important;
+}
+
+html[data-theme] .admin-topbar {
+    color: var(--ui-topbar-text);
+    background:
+        color-mix(in srgb, var(--ui-topbar-bg) 96%, transparent) !important;
+    border-bottom-color: var(--ui-border-soft) !important;
+}
+
+html[data-theme] .topbar-page-copy h1,
+html[data-theme] .topbar-title,
+html[data-theme] .stat-value {
+    color: var(--ui-brand-1) !important;
+}
+
+html[data-theme] .topbar-breadcrumb,
+html[data-theme] .topbar-subtitle,
+html[data-theme] .stat-label,
+html[data-theme] .text-muted,
+html[data-theme] .form-text {
+    color: var(--ui-text-muted) !important;
+}
+
+html[data-theme] .ramki-card,
+html[data-theme] .card,
+html[data-theme] .modal-content,
+html[data-theme] .dropdown-menu,
+html[data-theme] .admin-footer {
+    color: var(--ui-text-main);
+    background: var(--ui-card-bg) !important;
+    border-color: var(--ui-border-soft) !important;
+}
+
+html[data-theme] .card-header {
+    color: var(--ui-text-main);
+    background: var(--ui-card-header-bg) !important;
+    border-color: var(--ui-border-soft) !important;
+}
+
+html[data-theme] .modal-header {
+    color: var(--ui-brand-text);
+    background: var(--ui-brand-gradient) !important;
+    border-color: transparent !important;
+}
+
+html[data-theme] .modal-header .btn-close {
+    filter: invert(1);
+}
+
+html[data-theme] .stat-icon {
+    color: var(--ui-brand-1) !important;
+    background:
+        color-mix(in srgb, var(--ui-brand-2) 18%, var(--ui-card-bg))
+        !important;
+}
+
+html[data-theme] .profile-button,
+html[data-theme] .topbar-icon-button,
+html[data-theme] .icon-button {
+    color: var(--ui-topbar-text);
+    background: var(--ui-card-bg) !important;
+    border-color: var(--ui-border-soft) !important;
+}
+
+html[data-theme] .profile-avatar {
+    color: var(--ui-brand-text);
+    background: var(--ui-brand-gradient) !important;
+}
+
+html[data-theme] .dropdown-item {
+    color: var(--ui-text-main);
+}
+
+html[data-theme] .dropdown-item:hover,
+html[data-theme] .dropdown-item:focus {
+    color: var(--ui-text-main);
+    background: var(--ui-table-row-hover);
+}
+
+html[data-theme] .dropdown-divider,
+html[data-theme] hr {
+    border-color: var(--ui-border-soft);
+    opacity: 1;
+}
+
+html[data-theme] .table {
+    --bs-table-color: var(--ui-text-main);
+    --bs-table-bg: transparent;
+    --bs-table-border-color: var(--ui-border-soft);
+    --bs-table-striped-color: var(--ui-text-main);
+    --bs-table-striped-bg:
+        color-mix(in srgb, var(--ui-table-row-hover) 55%, transparent);
+    --bs-table-hover-color: var(--ui-text-main);
+    --bs-table-hover-bg: var(--ui-table-row-hover);
+    color: var(--ui-text-main);
+}
+
+html[data-theme] .table > :not(caption) > * > * {
+    color: inherit;
+    background-color: transparent;
+    border-color: var(--ui-border-soft);
+}
+
+html[data-theme] .table thead th {
+    color: var(--ui-table-header-text) !important;
+    background: var(--ui-table-header-bg) !important;
+    border-color: var(--ui-border-soft) !important;
+}
+
+html[data-theme] .form-control,
+html[data-theme] .form-select,
+html[data-theme] .input-group-text,
+html[data-theme] .form-check-input {
+    color: var(--ui-input-text);
+    background-color: var(--ui-input-bg) !important;
+    border-color: var(--ui-input-border) !important;
+}
+
+html[data-theme] .form-control:focus,
+html[data-theme] .form-select:focus,
+html[data-theme] .form-check-input:focus {
+    color: var(--ui-input-text);
+    background-color: var(--ui-input-bg) !important;
+    border-color: var(--ui-brand-2) !important;
+    box-shadow:
+        0 0 0 .22rem
+        color-mix(in srgb, var(--ui-brand-2) 20%, transparent)
+        !important;
+}
+
+html[data-theme] .form-control::placeholder {
+    color:
+        color-mix(in srgb, var(--ui-input-text) 52%, transparent);
+}
+
+html[data-theme="dark"] .form-select,
+html[data-theme="dark"] select option {
+    color-scheme: dark;
+    color: var(--ui-input-text);
+    background: var(--ui-input-bg);
+}
+
+html[data-theme] .btn-ramki,
+html[data-theme] .btn-brand {
+    color: var(--ui-brand-text);
+    background: var(--ui-brand-gradient) !important;
+    border-color: transparent !important;
+}
+
+html[data-theme="dark"] .btn-light,
+html[data-theme="dark"] .btn-outline-secondary {
+    color: var(--ui-text-main);
+    background: var(--ui-card-header-bg);
+    border-color: var(--ui-border-soft);
+}
+
+html[data-theme] code {
+    color: var(--ui-brand-1);
+}
+
+html[data-theme] .page-link {
+    color: var(--ui-text-main);
+    background: var(--ui-card-bg);
+    border-color: var(--ui-border-soft);
+}
+
+html[data-theme] .page-item.active .page-link {
+    color: var(--ui-brand-text);
+    background: var(--ui-brand-gradient);
+    border-color: transparent;
+}
+
+html[data-theme] .page-item.disabled .page-link {
+    color: var(--ui-text-muted);
+    background: var(--ui-card-header-bg);
+    border-color: var(--ui-border-soft);
+}
+
+html[data-theme] .dataTables_wrapper,
+html[data-theme] .dt-container,
+html[data-theme] .dt-info,
+html[data-theme] .dt-length,
+html[data-theme] .dt-search {
+    color: var(--ui-text-main);
+}
+
+html[data-theme] .dt-input {
+    color: var(--ui-input-text) !important;
+    background: var(--ui-input-bg) !important;
+    border-color: var(--ui-input-border) !important;
+}
+
+html[data-theme="dark"] .badge-soft-new {
+    color: #FFD4DF;
+    background: #5A1C2E;
+}
+
+html[data-theme="dark"] .badge-soft-success {
+    color: #9DE8C2;
+    background: #163F2D;
+}
+
+html[data-theme="dark"] .badge-soft-warning {
+    color: #FFE0A0;
+    background: #503A13;
+}
+
+html[data-theme="dark"] .badge-soft-muted {
+    color: #D4C8CD;
+    background: #40343A;
+}
+
+html[data-theme="dark"] .badge-soft-danger {
+    color: #FFB0B8;
+    background: #55242A;
+}
+
+html[data-theme="dark"] .tooltip-inner {
+    color: var(--ui-brand-text);
+    background: var(--ui-brand-1);
+}
+
+html[data-theme="dark"] .bs-tooltip-auto[data-popper-placement^="bottom"]
+.tooltip-arrow::before,
+html[data-theme="dark"] .bs-tooltip-bottom .tooltip-arrow::before {
+    border-bottom-color: var(--ui-brand-1);
+}
+
+/* Smooth change without shifting the layout. */
+html[data-theme] body,
+html[data-theme] .admin-main,
+html[data-theme] .admin-content,
+html[data-theme] .admin-topbar,
+html[data-theme] .ramki-card,
+html[data-theme] .card,
+html[data-theme] .modal-content,
+html[data-theme] .dropdown-menu,
+html[data-theme] .form-control,
+html[data-theme] .form-select {
+    transition:
+        color .18s ease,
+        background-color .18s ease,
+        border-color .18s ease;
+}
