@@ -66,90 +66,79 @@ require __DIR__ . '/includes/storefront-header.php';
 ?>
 
 <main class="store-page">
-  <div class="container">
-    <div class="section-title store-page-title">
-      <div class="decor-line"><i></i></div>
-      <span>Invitation catalogue</span>
-      <h2>Our <em>Products</em></h2>
-    </div>
+    <div class="container">
+        <div class="section-title store-page-title">
+            <div class="decor-line"><i></i></div>
+            <span>Invitation catalogue</span>
+            <h2>Our <em>Products</em></h2>
+        </div>
 
-    <div class="catalog-layout">
-      <aside class="catalog-filter glass-card">
-        <h3>Filter Products</h3>
+        <div class="catalog-layout">
+            <aside class="catalog-filter glass-card">
+                <h3>Filter Products</h3>
 
-        <form method="GET" action="products.php">
-          <div class="filter-group">
-            <label for="filterSearch">Search</label>
-            <input
-              id="filterSearch"
-              type="search"
-              name="q"
-              value="<?= sf_e($search); ?>"
-              placeholder="Name or SKU"
-            >
-          </div>
+                <form method="GET" action="products.php">
+                    <div class="filter-group">
+                        <label for="filterSearch">Search</label>
+                        <input id="filterSearch" type="search" name="q" value="<?= sf_e($search); ?>"
+                            placeholder="Name or SKU">
+                    </div>
 
-          <div class="filter-group">
-            <label for="filterCategory">Category</label>
-            <select id="filterCategory" name="category">
-              <option value="">All Categories</option>
+                    <div class="filter-group">
+                        <label for="filterCategory">Category</label>
+                        <select id="filterCategory" name="category">
+                            <option value="">All Categories</option>
 
-              <?php foreach ($categories as $category): ?>
-                <option
-                  value="<?= sf_e($category['slug']); ?>"
-                  <?= $categorySlug === $category['slug']
+                            <?php foreach ($categories as $category): ?>
+                            <option value="<?= sf_e($category['slug']); ?>" <?= $categorySlug === $category['slug']
                       ? 'selected'
-                      : ''; ?>
-                >
-                  <?= sf_e($category['category_name']); ?>
-                </option>
-              <?php endforeach; ?>
-            </select>
-          </div>
+                      : ''; ?>>
+                                <?= sf_e($category['category_name']); ?>
+                            </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
 
-          <div class="filter-group">
-            <label for="filterPrice">Price Range</label>
-            <select id="filterPrice" name="price_range">
-              <option value="0">All Prices</option>
+                    <div class="filter-group">
+                        <label for="filterPrice">Price Range</label>
+                        <select id="filterPrice" name="price_range">
+                            <option value="0">All Prices</option>
 
-              <?php foreach ($priceRanges as $range): ?>
-                <option
-                  value="<?= (int)$range['id']; ?>"
-                  <?= $rangeId === (int)$range['id']
+                            <?php foreach ($priceRanges as $range): ?>
+                            <option value="<?= (int)$range['id']; ?>" <?= $rangeId === (int)$range['id']
                       ? 'selected'
-                      : ''; ?>
-                >
-                  <?= sf_e($range['range_name']); ?>
-                </option>
-              <?php endforeach; ?>
-            </select>
-          </div>
+                      : ''; ?>>
+                                <?= sf_e($range['range_name']); ?>
+                            </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
 
-          <div class="filter-actions">
-            <button class="submit-btn" type="submit">
-              Apply Filters
-            </button>
+                    <div class="filter-actions">
+                        <button class="submit-btn" type="submit">
+                            Apply Filters
+                        </button>
 
-            <a class="product-action-btn" href="products.php">
-              Clear Filters
-            </a>
-          </div>
-        </form>
-      </aside>
+                        <a class="product-action-btn" href="products.php">
+                            Clear Filters
+                        </a>
+                    </div>
+                </form>
+            </aside>
 
-      <section>
-        <?php if (!$products): ?>
-          <div class="empty-state glass-card">
-            <h3>No products found</h3>
-            <p>
-              Change the filters or add active products from the
-              admin panel.
-            </p>
-          </div>
-        <?php else: ?>
-          <div class="products-grid catalog-products">
-            <?php foreach ($products as $product): ?>
-              <?php
+            <section>
+                <?php if (!$products): ?>
+                <div class="empty-state glass-card">
+                    <h3>No products found</h3>
+                    <p>
+                        Change the filters or add active products from the
+                        admin panel.
+                    </p>
+                </div>
+                <?php else: ?>
+                <div class="products-grid catalog-products">
+                    <?php foreach ($products as $product): ?>
+                    <?php
               $effectivePrice = sf_effective_price($product);
               $mode = sf_purchase_mode($pdo, $product);
               $quickAdd = sf_quick_add_configuration($pdo, $product);
@@ -157,159 +146,111 @@ require __DIR__ . '/includes/storefront-header.php';
                   $quickAdd['available']
                   && sf_product_can_quick_add($product);
               ?>
-              <article class="product-card glass-card">
-                <?php if (
+                    <article class="product-card glass-card">
+                        <?php if (
                     $effectivePrice < (float)$product['base_price']
                 ): ?>
-                  <span class="badge">Offer</span>
-                <?php endif; ?>
+                        <span class="badge">Offer</span>
+                        <?php endif; ?>
 
-                <a
-                  href="product.php?slug=<?= rawurlencode(
+                        <a href="product.php?slug=<?= rawurlencode(
                       (string)$product['slug']
-                  ); ?>"
-                >
-                  <div class="product-img">
-                    <img
-                      class="product-photo"
-                      src="<?= sf_e(sf_media_path(
+                  ); ?>">
+                            <div class="product-img">
+                                <img class="product-photo" src="<?= sf_e(sf_media_path(
                           $product['thumbnail_path'],
                           'banner.png'
-                      )); ?>"
-                      alt="<?= sf_e($product['product_name']); ?>"
-                      loading="lazy"
-                    >
-                  </div>
-                </a>
+                      )); ?>" alt="<?= sf_e($product['product_name']); ?>" loading="lazy">
+                            </div>
+                        </a>
 
-                <div class="product-body">
-                  <h3><?= sf_e($product['product_name']); ?></h3>
+                        <div class="product-body">
+                            <h3><?= sf_e($product['product_name']); ?></h3>
 
-                  <?php if (!empty($product['product_name_tamil'])): ?>
-                    <div class="product-name-tamil" lang="ta">
-                      <?= sf_e($product['product_name_tamil']); ?>
-                    </div>
-                  <?php endif; ?>
+                            <?php if (!empty($product['product_name_tamil'])): ?>
+                            <div class="product-name-tamil" lang="ta">
+                                <?= sf_e($product['product_name_tamil']); ?>
+                            </div>
+                            <?php endif; ?>
 
-                  <div class="price">
-                    <?= sf_e(sf_money($effectivePrice)); ?>
+                            <div class="price">
+                                <?= sf_e(sf_money($effectivePrice)); ?>
 
-                    <?php if (
+                                <?php if (
                         $effectivePrice < (float)$product['base_price']
                     ): ?>
-                      <span class="price-old">
-                        <?= sf_e(sf_money(
+                                <span class="price-old">
+                                    <?= sf_e(sf_money(
                             $product['base_price']
                         )); ?>
-                      </span>
-                    <?php endif; ?>
-                  </div>
+                                </span>
+                                <?php endif; ?>
+                            </div>
 
-                  <div class="moq-note">
-                    MOQ:
-                    <?= (int)$product['minimum_order_qty']; ?>
-                    · Step:
-                    <?= (int)$product['quantity_step']; ?>
-                  </div>
+                            <div class="moq-note">
+                                MOQ:
+                                <?= (int)$product['minimum_order_qty']; ?>
+                                · Step:
+                                <?= (int)$product['quantity_step']; ?>
+                            </div>
 
-                  <div
-                    class="product-actions <?= $mode === 'both'
+                            <div class="product-actions <?= $mode === 'both'
                         ? 'two'
-                        : ''; ?>"
-                  >
-                    <?php if (in_array(
+                        : ''; ?>">
+                                <?php if (in_array(
                         $mode,
                         ['checkout', 'both'],
                         true
                     )): ?>
-                      <?php if ($quickAddAvailable): ?>
-                        <form
-                          action="add_to_cart.php"
-                          method="POST"
-                          class="quick-add-form js-add-to-cart-form"
-                        >
-                          <input
-                            type="hidden"
-                            name="csrf_token"
-                            value="<?= sf_e(sf_csrf_token()); ?>"
-                          >
-                          <input
-                            type="hidden"
-                            name="product_id"
-                            value="<?= (int)$product['id']; ?>"
-                          >
-                          <input
-                            type="hidden"
-                            name="quantity"
-                            value="<?= (int)$product['minimum_order_qty']; ?>"
-                          >
-                          <input
-                            type="hidden"
-                            name="color_variant_id"
-                            value="<?= (int)$quickAdd['color_variant_id']; ?>"
-                          >
-                          <input
-                            type="hidden"
-                            name="design_variant_id"
-                            value="<?= (int)$quickAdd['design_variant_id']; ?>"
-                          >
-                          <input
-                            type="hidden"
-                            name="return_url"
-                            value="<?= sf_e(sf_current_return_url(
+                                <?php if ($quickAddAvailable): ?>
+                                <form action="add_to_cart.php" method="POST" class="quick-add-form js-add-to-cart-form">
+                                    <input type="hidden" name="csrf_token" value="<?= sf_e(sf_csrf_token()); ?>">
+                                    <input type="hidden" name="product_id" value="<?= (int)$product['id']; ?>">
+                                    <input type="hidden" name="quantity"
+                                        value="<?= (int)$product['minimum_order_qty']; ?>">
+                                    <input type="hidden" name="color_variant_id"
+                                        value="<?= (int)$quickAdd['color_variant_id']; ?>">
+                                    <input type="hidden" name="design_variant_id"
+                                        value="<?= (int)$quickAdd['design_variant_id']; ?>">
+                                    <input type="hidden" name="return_url" value="<?= sf_e(sf_current_return_url(
                                 'products.php'
-                            )); ?>"
-                          >
+                            )); ?>">
 
-                          <button
-                            type="submit"
-                            class="product-action-btn primary"
-                            data-add-button
-                          >
-                            Add to Cart
-                          </button>
-                        </form>
-                      <?php elseif (!sf_product_can_quick_add($product)): ?>
-                        <button
-                          type="button"
-                          class="product-action-btn primary"
-                          disabled
-                        >
-                          Out of Stock
-                        </button>
-                      <?php else: ?>
-                        <a
-                          class="product-action-btn primary"
-                          href="product.php?slug=<?= rawurlencode(
+                                    <button type="submit" class="product-action-btn primary" data-add-button>
+                                        Add to Cart
+                                    </button>
+                                </form>
+                                <?php elseif (!sf_product_can_quick_add($product)): ?>
+                                <button type="button" class="product-action-btn primary" disabled>
+                                    Out of Stock
+                                </button>
+                                <?php else: ?>
+                                <a class="product-action-btn primary" href="product.php?slug=<?= rawurlencode(
                               (string)$product['slug']
-                          ); ?>#buy"
-                        >
-                          Choose Options
-                        </a>
-                      <?php endif; ?>
-                    <?php endif; ?>
+                          ); ?>#buy">
+                                    Choose Options
+                                </a>
+                                <?php endif; ?>
+                                <?php endif; ?>
 
-                    <?php if (in_array(
+                                <?php if (in_array(
                         $mode,
                         ['enquiry', 'both'],
                         true
                     )): ?>
-                      <a
-                        class="product-action-btn"
-                        href="product.php?slug=<?= rawurlencode(
+                                <a class="product-action-btn" href="product.php?slug=<?= rawurlencode(
                             (string)$product['slug']
-                        ); ?>#enquiry"
-                      >Enquiry</a>
-                    <?php endif; ?>
-                  </div>
+                        ); ?>#enquiry">Enquiry</a>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                    </article>
+                    <?php endforeach; ?>
                 </div>
-              </article>
-            <?php endforeach; ?>
-          </div>
-        <?php endif; ?>
-      </section>
+                <?php endif; ?>
+            </section>
+        </div>
     </div>
-  </div>
 </main>
 
 <?php require __DIR__ . '/includes/storefront-footer.php'; ?>

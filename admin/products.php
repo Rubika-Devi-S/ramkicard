@@ -11,6 +11,18 @@ if (!$productPermissions['can_view']) {
     exit('Permission denied.');
 }
 
+/*
+ * Keep old sidebar/menu links working.
+ * products.php?action=add now opens the dedicated Add Product page.
+ */
+if (
+    ($_GET['action'] ?? '') === 'add'
+    && $productPermissions['can_add']
+) {
+    header('Location: product-add.php');
+    exit;
+}
+
 $pageTitle = 'Products';
 $pageScript = 'products.js';
 
@@ -35,9 +47,13 @@ require __DIR__ . '/includes/header.php';
         </div>
 
         <?php if ($productPermissions['can_add']): ?>
-            <button class="btn btn-ramki" id="addProductBtn" type="button">
+            <a
+                class="btn btn-ramki"
+                id="addProductBtn"
+                href="product-add.php"
+            >
                 <i class="fa-solid fa-plus me-2"></i>Add Product
-            </button>
+            </a>
         <?php endif; ?>
     </div>
 
@@ -92,7 +108,7 @@ require __DIR__ . '/includes/header.php';
     <div class="modal-dialog modal-xl modal-dialog-scrollable">
         <form class="modal-content" id="productForm" enctype="multipart/form-data">
             <div class="modal-header">
-                <h5 class="modal-title">Add Product</h5>
+                <h5 class="modal-title">Edit Product</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
 
@@ -257,7 +273,7 @@ require __DIR__ . '/includes/header.php';
 
             <div class="modal-footer">
                 <button class="btn btn-light" type="button" data-bs-dismiss="modal">Cancel</button>
-                <button class="btn btn-ramki" type="submit" id="saveProductBtn">Save Product</button>
+                <button class="btn btn-ramki" type="submit" id="saveProductBtn">Update Product</button>
             </div>
         </form>
     </div>
