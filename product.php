@@ -28,6 +28,96 @@ if (!$product) {
     require __DIR__ . '/includes/storefront-header.php';
     ?>
     
+<main class="store-page">
+      <div class="container">
+        <div class="empty-state glass-card">
+          <h1>Product not found</h1>
+          <p>The requested product is inactive or unavailable.</p>
+          <a class="primary-btn" href="products.php">
+            View Products
+          </a>
+        </div>
+      </div>
+    </main>
+    <?php
+    require __DIR__ . '/includes/storefront-footer.php';
+    exit;
+}
+
+$productId = (int)$product['id'];
+
+$stmt = $pdo->prepare(
+    "SELECT image_path, alt_text
+     FROM product_images
+     WHERE product_id = :product_id
+       AND status = 'active'
+     ORDER BY sort_order, id"
+);
+$stmt->execute(['product_id' => $productId]);
+$productImages = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+$stmt = $pdo->prepare(
+    "SELECT *
+     FROM product_color_variants
+     WHERE product_id = :product_id
+       AND status = 'active'
+     ORDER BY sort_order, color_name"
+);
+$stmt->execute(['product_id' => $productId]);
+$colors = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+$stmt = $pdo->prepare(
+    "SELECT *
+     FROM product_design_variants
+     WHERE product_id = :product_id
+       AND status = 'active'
+     ORDER BY sort_order, design_name"
+);
+$stmt->execute(['product_id' => $productId]);
+$designs = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+$mode = sf_purchase_mode($pdo, $product);
+$effectivePrice = sf_effective_price($product);
+
+$mainImage = sf_media_path(
+    $product['thumbnail_path'],
+    'banner.png'
+);
+
+$gallery = array_merge(
+    [[
+        'image_path' => $mainImage,
+        'alt_text' => $product['product_name'],
+    ]],
+    $productImages
+);
+
+$pageTitle = ($product['meta_title'] ?: $product['product_name'])
+    . ' | '
+    . sf_setting($pdo, 'company_name', 'Ramki Cards');
+
+$topStripItems = [];
+require __DIR__ . '/includes/storefront-header.php';
+
+$cartStatus = trim((string)($_GET['cart'] ?? ''));
+
+$enquiryToast = $_SESSION['product_enquiry_toast'] ?? [];
+unset($_SESSION['product_enquiry_toast']);
+
+$enquiryNumber = trim((string)(
+    $enquiryToast['number']
+    ?? $_GET['enquiry']
+    ?? ''
+));
+
+$enquiryToastMessage = trim((string)(
+    $enquiryToast['message']
+    ?? ''
+));
+
+$error = trim((string)($_GET['error'] ?? ''));
+?>
+
 <style>
 .product-enquiry-toast {
   position: fixed;
@@ -227,96 +317,6 @@ if (!$product) {
     aria-hidden="true"
   ></span>
 </div>
-
-<main class="store-page">
-      <div class="container">
-        <div class="empty-state glass-card">
-          <h1>Product not found</h1>
-          <p>The requested product is inactive or unavailable.</p>
-          <a class="primary-btn" href="products.php">
-            View Products
-          </a>
-        </div>
-      </div>
-    </main>
-    <?php
-    require __DIR__ . '/includes/storefront-footer.php';
-    exit;
-}
-
-$productId = (int)$product['id'];
-
-$stmt = $pdo->prepare(
-    "SELECT image_path, alt_text
-     FROM product_images
-     WHERE product_id = :product_id
-       AND status = 'active'
-     ORDER BY sort_order, id"
-);
-$stmt->execute(['product_id' => $productId]);
-$productImages = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-$stmt = $pdo->prepare(
-    "SELECT *
-     FROM product_color_variants
-     WHERE product_id = :product_id
-       AND status = 'active'
-     ORDER BY sort_order, color_name"
-);
-$stmt->execute(['product_id' => $productId]);
-$colors = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-$stmt = $pdo->prepare(
-    "SELECT *
-     FROM product_design_variants
-     WHERE product_id = :product_id
-       AND status = 'active'
-     ORDER BY sort_order, design_name"
-);
-$stmt->execute(['product_id' => $productId]);
-$designs = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-$mode = sf_purchase_mode($pdo, $product);
-$effectivePrice = sf_effective_price($product);
-
-$mainImage = sf_media_path(
-    $product['thumbnail_path'],
-    'banner.png'
-);
-
-$gallery = array_merge(
-    [[
-        'image_path' => $mainImage,
-        'alt_text' => $product['product_name'],
-    ]],
-    $productImages
-);
-
-$pageTitle = ($product['meta_title'] ?: $product['product_name'])
-    . ' | '
-    . sf_setting($pdo, 'company_name', 'Ramki Cards');
-
-$topStripItems = [];
-require __DIR__ . '/includes/storefront-header.php';
-
-$cartStatus = trim((string)($_GET['cart'] ?? ''));
-
-$enquiryToast = $_SESSION['product_enquiry_toast'] ?? [];
-unset($_SESSION['product_enquiry_toast']);
-
-$enquiryNumber = trim((string)(
-    $enquiryToast['number']
-    ?? $_GET['enquiry']
-    ?? ''
-));
-
-$enquiryToastMessage = trim((string)(
-    $enquiryToast['message']
-    ?? ''
-));
-
-$error = trim((string)($_GET['error'] ?? ''));
-?>
 
 <main class="store-page">
   <div class="container">
@@ -863,11 +863,33 @@ document.querySelectorAll('[data-gallery-image]').forEach(image => {
   );
   <?php endif; ?>
 
+  <?php if ($error !== ''): ?>
+  showToast(
+    'error',
+    'Unable to submit enquiry',
+    <?= json_encode(
+        $error,
+        JSON_UNESCAPED_UNICODE
+        | JSON_UNESCAPED_SLASHES
+    ); ?>
+  );
+  <?php endif; ?>
+
   const currentUrl = new URL(window.location.href);
+
+  let shouldCleanUrl = false;
 
   if (currentUrl.searchParams.has('enquiry')) {
     currentUrl.searchParams.delete('enquiry');
+    shouldCleanUrl = true;
+  }
 
+  if (currentUrl.searchParams.has('error')) {
+    currentUrl.searchParams.delete('error');
+    shouldCleanUrl = true;
+  }
+
+  if (shouldCleanUrl) {
     window.history.replaceState(
       {},
       document.title,

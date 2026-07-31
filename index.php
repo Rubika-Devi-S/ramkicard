@@ -534,7 +534,7 @@ html.home-opening-skip .home-opening-screen {
     const storageKey = 'ramki-home-entry-animation-seen-v1';
 
     const navigationEntry =
-        performance.getEntriesByType?.('navigation')?.[0];
+        performance.getEntriesByType?.('navigation')?. [0];
 
     const navigationType =
         navigationEntry?.type || 'navigate';
@@ -579,13 +579,12 @@ html.home-opening-skip .home-opening-screen {
      * - it does not contain #services, #about, #contact, etc.
      * - it does not contain an action/status query string
      */
-    const shouldShow =
-        !alreadySeen
-        && navigationType === 'navigate'
-        && !sameWebsiteReferrer
-        && !hasSectionHash
-        && !hasActionQuery
-        && !reduceMotion;
+    const shouldShow = !alreadySeen &&
+        navigationType === 'navigate' &&
+        !sameWebsiteReferrer &&
+        !hasSectionHash &&
+        !hasActionQuery &&
+        !reduceMotion;
 
     window.RamkiHomeEntryAnimation = {
         shouldShow,
@@ -801,69 +800,32 @@ html.home-opening-skip .home-opening-screen {
 
                     <div class="product-actions <?= $mode === 'both' ? 'two' : ''; ?>">
                         <?php if (in_array($mode, ['checkout', 'both'], true)): ?>
-                          <?php if ($quickAddAvailable): ?>
-                            <form
-                              action="add_to_cart.php"
-                              method="POST"
-                              class="quick-add-form js-add-to-cart-form"
-                            >
-                              <input
-                                type="hidden"
-                                name="csrf_token"
-                                value="<?= sf_e(sf_csrf_token()); ?>"
-                              >
-                              <input
-                                type="hidden"
-                                name="product_id"
-                                value="<?= (int)$product['id']; ?>"
-                              >
-                              <input
-                                type="hidden"
-                                name="quantity"
-                                value="<?= (int)$product['minimum_order_qty']; ?>"
-                              >
-                              <input
-                                type="hidden"
-                                name="color_variant_id"
-                                value="<?= (int)$quickAdd['color_variant_id']; ?>"
-                              >
-                              <input
-                                type="hidden"
-                                name="design_variant_id"
-                                value="<?= (int)$quickAdd['design_variant_id']; ?>"
-                              >
-                              <input
-                                type="hidden"
-                                name="return_url"
-                                value="index.php#products"
-                              >
+                        <?php if ($quickAddAvailable): ?>
+                        <form action="add_to_cart.php" method="POST" class="quick-add-form js-add-to-cart-form">
+                            <input type="hidden" name="csrf_token" value="<?= sf_e(sf_csrf_token()); ?>">
+                            <input type="hidden" name="product_id" value="<?= (int)$product['id']; ?>">
+                            <input type="hidden" name="quantity" value="<?= (int)$product['minimum_order_qty']; ?>">
+                            <input type="hidden" name="color_variant_id"
+                                value="<?= (int)$quickAdd['color_variant_id']; ?>">
+                            <input type="hidden" name="design_variant_id"
+                                value="<?= (int)$quickAdd['design_variant_id']; ?>">
+                            <input type="hidden" name="return_url" value="index.php#products">
 
-                              <button
-                                type="submit"
-                                class="product-action-btn primary"
-                                data-add-button
-                              >
+                            <button type="submit" class="product-action-btn primary" data-add-button>
                                 Add to Cart
-                              </button>
-                            </form>
-                          <?php elseif (!sf_product_can_quick_add($product)): ?>
-                            <button
-                              type="button"
-                              class="product-action-btn primary"
-                              disabled
-                            >
-                              Out of Stock
                             </button>
-                          <?php else: ?>
-                            <a
-                              class="product-action-btn primary"
-                              href="product.php?slug=<?= rawurlencode(
+                        </form>
+                        <?php elseif (!sf_product_can_quick_add($product)): ?>
+                        <button type="button" class="product-action-btn primary" disabled>
+                            Out of Stock
+                        </button>
+                        <?php else: ?>
+                        <a class="product-action-btn primary" href="product.php?slug=<?= rawurlencode(
                                   (string)$product['slug']
-                              ); ?>#buy"
-                            >
-                              Choose Options
-                            </a>
-                          <?php endif; ?>
+                              ); ?>#buy">
+                            Choose Options
+                        </a>
+                        <?php endif; ?>
                         <?php endif; ?>
 
                         <?php if (in_array($mode, ['enquiry', 'both'], true)): ?>
@@ -1142,12 +1104,7 @@ html.home-opening-skip .home-opening-screen {
 
           ?>
 
-                    <a
-                        href="<?= sf_e($contactWhatsAppUrl); ?>"
-                        class="wa-btn"
-                        target="_blank"
-                        rel="noopener"
-                    >
+                    <a href="<?= sf_e($contactWhatsAppUrl); ?>" class="wa-btn" target="_blank" rel="noopener">
                         Chat on WhatsApp
                     </a>
                 </div>
@@ -1189,8 +1146,9 @@ function handleHomeOpeningLogoError(image) {
     );
 
     const entryState =
-        window.RamkiHomeEntryAnimation
-        || { shouldShow: false };
+        window.RamkiHomeEntryAnimation || {
+            shouldShow: false
+        };
 
     let openingFinished = false;
 
