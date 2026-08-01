@@ -1,4 +1,4 @@
-/* Ramki Cards — login-gated storefront actions */
+* Ramki Cards — login-gated storefront actions */
 
 .storefront-login-button,
 .storefront-admin-button {
@@ -208,5 +208,70 @@
 
   .cart-link > span:not(.cart-count):first-child {
     display: none;
+  }
+}
+
+/* =====================================================================
+   Mobile header login visibility fix
+   storefront.css hides every .quote-btn on small screens. The login
+   button also uses .quote-btn, so this stronger rule keeps only the
+   authentication controls visible in the mobile header.
+   ===================================================================== */
+
+@media (max-width: 991.98px) {
+  .store-nav-actions {
+    display: flex !important;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    flex: 0 0 auto;
+  }
+
+  .store-nav-actions .storefront-login-button,
+  .store-nav-actions .storefront-admin-button {
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    min-width: 48px;
+    min-height: 43px;
+    padding: 8px 12px;
+    position: relative;
+    z-index: 3;
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
+
+  .store-nav-actions .store-account-menu,
+  .store-nav-actions .store-account-trigger {
+    display: inline-flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
+}
+
+@media (max-width: 575.98px) {
+  .store-nav-actions .storefront-login-copy {
+    display: flex !important;
+  }
+
+  .store-nav-actions .storefront-login-copy strong {
+    display: block !important;
+    font-size: 12px;
+    white-space: nowrap;
+  }
+
+  .store-nav-actions .storefront-login-copy small {
+    display: none !important;
+  }
+
+  .store-nav-actions .storefront-login-icon {
+    display: none !important;
+  }
+
+  .store-nav-actions .storefront-login-button,
+  .store-nav-actions .storefront-admin-button {
+    min-width: auto;
+    padding-inline: 11px;
   }
 }
