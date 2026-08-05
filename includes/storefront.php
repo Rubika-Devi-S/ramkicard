@@ -457,7 +457,63 @@ function sf_active_cart_id(PDO $pdo, bool $create = false): int
     }
 
     /*
-     * Guests do not receive an active cart in the login-only purchase flow.
+    |--------------------------------------------------------------------------
+    | Administrator storefront test cart
+    |--------------------------------------------------------------------------
+    | Administrators do not have a customer_id. Give an authenticated admin a
+    | browser-session cart so the product, cart and checkout flow can be tested
+    | without creating a customer login. Public guests remain blocked.
+    |--------------------------------------------------------------------------
+    */
+    if (sf_admin_logged_in()) {
+        $token = sf_cart_token();
+
+        $stmt = $pdo->prepare(
+            "SELECT id
+             FROM carts
+             WHERE session_token = :session_token
+               AND customer_id IS NULL
+               AND status = 'active'
+             ORDER BY updated_at DESC, id DESC
+             LIMIT 1"
+        );
+
+        $stmt->execute([
+            'session_token' => $token,
+        ]);
+
+        $cartId = (int)$stmt->fetchColumn();
+
+        if ($cartId > 0 || !$create) {
+            return $cartId;
+        }
+
+        $stmt = $pdo->prepare(
+            "INSERT INTO carts
+                (
+                    customer_id,
+                    session_token,
+                    status,
+                    expires_at
+                )
+             VALUES
+                (
+                    NULL,
+                    :session_token,
+                    'active',
+                    DATE_ADD(NOW(), INTERVAL 1 DAY)
+                )"
+        );
+
+        $stmt->execute([
+            'session_token' => $token,
+        ]);
+
+        return (int)$pdo->lastInsertId();
+    }
+
+    /*
+     * Public guests do not receive a cart in the login-only purchase flow.
      */
     return 0;
 }

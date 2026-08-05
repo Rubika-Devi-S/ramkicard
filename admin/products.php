@@ -23,6 +23,69 @@ if (
     exit;
 }
 
+$initialCategories = [];
+$initialProducts = [];
+$initialProductLoadError = '';
+
+try {
+    $initialCategories = $pdo->query(
+        "SELECT id, category_name, status
+         FROM categories
+         WHERE deleted_at IS NULL
+         ORDER BY sort_order, category_name"
+    )->fetchAll(PDO::FETCH_ASSOC);
+
+    /*
+     * Render an initial product list on the server. The JavaScript refreshes
+     * this list through the API, but products remain visible even when the
+     * browser blocks JavaScript or an API response is temporarily invalid.
+     * Correlated subqueries avoid ONLY_FULL_GROUP_BY failures.
+     */
+    $initialProductStmt = $pdo->query(
+        "SELECT
+            p.id,
+            p.product_name,
+            p.product_name_tamil,
+            p.slug,
+            p.sku,
+            p.thumbnail_path,
+            p.base_price,
+            p.offer_price,
+            p.minimum_order_qty,
+            p.quantity_step,
+            p.purchase_action,
+            p.is_featured,
+            p.status,
+            p.updated_at,
+            COALESCE(c.category_name, 'Unassigned') AS category_name,
+            (
+                SELECT COUNT(*)
+                FROM product_color_variants cv
+                WHERE cv.product_id = p.id
+            ) AS color_count,
+            (
+                SELECT COUNT(*)
+                FROM product_design_variants dv
+                WHERE dv.product_id = p.id
+            ) AS design_count,
+            (
+                SELECT COUNT(*)
+                FROM product_images pi
+                WHERE pi.product_id = p.id
+            ) AS image_count
+         FROM products p
+         LEFT JOIN categories c ON c.id = p.category_id
+         WHERE p.deleted_at IS NULL
+         ORDER BY p.updated_at DESC, p.id DESC
+         LIMIT 1000"
+    );
+
+    $initialProducts = $initialProductStmt->fetchAll(PDO::FETCH_ASSOC);
+} catch (Throwable $exception) {
+    error_log('Initial product list error: ' . $exception->getMessage());
+    $initialProductLoadError = 'Unable to load products. Use Refresh to retry.';
+}
+
 $pageTitle = 'Products';
 $pageScript = 'products.js';
 
@@ -35,6 +98,8 @@ require __DIR__ . '/includes/header.php';
     data-can-add="<?= $productPermissions['can_add'] ? '1' : '0'; ?>"
     data-can-edit="<?= $productPermissions['can_edit'] ? '1' : '0'; ?>"
     data-can-delete="<?= $productPermissions['can_delete'] ? '1' : '0'; ?>"
+    data-api-url="api/products.php"
+    data-view-url="product-view.php"
 >
     <div id="productMessage"></div>
 
@@ -61,6 +126,15 @@ require __DIR__ . '/includes/header.php';
         <div class="col-md-4">
             <select class="form-select" id="filterCategory">
                 <option value="">All Categories</option>
+                <?php foreach ($initialCategories as $category): ?>
+                    <option value="<?= (int)$category['id']; ?>">
+                        <?= htmlspecialchars(
+                            (string)$category['category_name'],
+                            ENT_QUOTES,
+                            'UTF-8'
+                        ); ?>
+                    </option>
+                <?php endforeach; ?>
             </select>
         </div>
 
@@ -96,9 +170,188 @@ require __DIR__ . '/includes/header.php';
                 </tr>
             </thead>
             <tbody>
-                <tr>
-                    <td colspan="9" class="text-center py-4 text-muted">Loading products...</td>
-                </tr>
+                <?php if ($initialProductLoadError !== ''): ?>
+                    <tr>
+                        <td colspan="9" class="text-center py-4 text-danger">
+                            <?= htmlspecialchars(
+                                $initialProductLoadError,
+                                ENT_QUOTES,
+                                'UTF-8'
+                            ); ?>
+                        </td>
+                    </tr>
+                <?php elseif (!$initialProducts): ?>
+                    <tr>
+                        <td colspan="9" class="text-center py-5 text-muted">
+                            No products found.
+                        </td>
+                    </tr>
+                <?php else: ?>
+                    <?php foreach ($initialProducts as $index => $row): ?>
+                        <?php
+                        $effectivePrice = (
+                            $row['offer_price'] !== null
+                            && $row['offer_price'] !== ''
+                        )
+                            ? (float)$row['offer_price']
+                            : (float)$row['base_price'];
+
+                        $thumbnailUrl = catalog_admin_media_url(
+                            $row['thumbnail_path'] ?? null
+                        );
+                        ?>
+                        <tr>
+                            <td><?= $index + 1; ?></td>
+                            <td>
+                                <div class="d-flex gap-2 align-items-center">
+                                    <?php if ($thumbnailUrl !== ''): ?>
+                                        <img
+                                            src="<?= htmlspecialchars(
+                                                $thumbnailUrl,
+                                                ENT_QUOTES,
+                                                'UTF-8'
+                                            ); ?>"
+                                            alt=""
+                                            style="width:62px;height:52px;object-fit:cover;border-radius:8px;"
+                                        >
+                                    <?php endif; ?>
+
+                                    <div>
+                                        <strong>
+                                            <?= htmlspecialchars(
+                                                (string)$row['product_name'],
+                                                ENT_QUOTES,
+                                                'UTF-8'
+                                            ); ?>
+                                        </strong>
+
+                                        <?php if (!empty($row['product_name_tamil'])): ?>
+                                            <div class="small fw-semibold" lang="ta">
+                                                <?= htmlspecialchars(
+                                                    (string)$row['product_name_tamil'],
+                                                    ENT_QUOTES,
+                                                    'UTF-8'
+                                                ); ?>
+                                            </div>
+                                        <?php endif; ?>
+
+                                        <div class="small text-muted">
+                                            <?= htmlspecialchars(
+                                                (string)(
+                                                    $row['sku']
+                                                    ?: $row['slug']
+                                                    ?: ''
+                                                ),
+                                                ENT_QUOTES,
+                                                'UTF-8'
+                                            ); ?>
+                                            <?= !empty($row['is_featured'])
+                                                ? ' · Featured'
+                                                : ''; ?>
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <?= htmlspecialchars(
+                                    (string)$row['category_name'],
+                                    ENT_QUOTES,
+                                    'UTF-8'
+                                ); ?>
+                            </td>
+                            <td>
+                                <strong>
+                                    ₹<?= number_format($effectivePrice, 2); ?>
+                                </strong>
+                                <?php if (
+                                    $row['offer_price'] !== null
+                                    && $row['offer_price'] !== ''
+                                ): ?>
+                                    <div class="small text-muted text-decoration-line-through">
+                                        ₹<?= number_format(
+                                            (float)$row['base_price'],
+                                            2
+                                        ); ?>
+                                    </div>
+                                <?php endif; ?>
+                            </td>
+                            <td>
+                                <?= (int)$row['minimum_order_qty']; ?>
+                                <div class="small text-muted">
+                                    Step <?= (int)$row['quantity_step']; ?>
+                                </div>
+                            </td>
+                            <td>
+                                <?= (int)$row['color_count']; ?> colours<br>
+                                <?= (int)$row['design_count']; ?> designs<br>
+                                <span class="small text-muted">
+                                    <?= (int)$row['image_count']; ?> gallery
+                                </span>
+                            </td>
+                            <td>
+                                <?= htmlspecialchars(
+                                    (string)$row['purchase_action'],
+                                    ENT_QUOTES,
+                                    'UTF-8'
+                                ); ?>
+                            </td>
+                            <td>
+                                <?php
+                                $statusClass = match ($row['status']) {
+                                    'active' => 'bg-success',
+                                    'draft' => 'bg-warning text-dark',
+                                    default => 'bg-secondary',
+                                };
+                                ?>
+                                <span class="badge <?= $statusClass; ?>">
+                                    <?= htmlspecialchars(
+                                        (string)$row['status'],
+                                        ENT_QUOTES,
+                                        'UTF-8'
+                                    ); ?>
+                                </span>
+                            </td>
+                            <td>
+                                <div class="d-flex gap-1 flex-wrap">
+                                    <a
+                                        class="btn btn-sm btn-outline-secondary"
+                                        href="product-view.php?id=<?= (int)$row['id']; ?>"
+                                        title="View"
+                                    >
+                                        <i class="fa-solid fa-eye"></i>
+                                    </a>
+
+                                    <?php if ($productPermissions['can_edit']): ?>
+                                        <button
+                                            type="button"
+                                            class="btn btn-sm btn-outline-primary js-edit-product"
+                                            data-id="<?= (int)$row['id']; ?>"
+                                            title="Edit"
+                                        >
+                                            <i class="fa-solid fa-pen"></i>
+                                        </button>
+                                    <?php endif; ?>
+
+                                    <?php if ($productPermissions['can_delete']): ?>
+                                        <button
+                                            type="button"
+                                            class="btn btn-sm btn-outline-danger js-delete-product"
+                                            data-id="<?= (int)$row['id']; ?>"
+                                            data-name="<?= htmlspecialchars(
+                                                (string)$row['product_name'],
+                                                ENT_QUOTES,
+                                                'UTF-8'
+                                            ); ?>"
+                                            title="Delete"
+                                        >
+                                            <i class="fa-solid fa-trash"></i>
+                                        </button>
+                                    <?php endif; ?>
+                                </div>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                <?php endif; ?>
             </tbody>
         </table>
     </div>

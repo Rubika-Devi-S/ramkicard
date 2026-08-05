@@ -6,8 +6,25 @@ require_once dirname(__DIR__) . '/includes/catalog-common.php';
 
 catalog_require_login();
 
-$menuKey = 'product_list';
-$action = catalog_action();
+$action = trim((string)(
+    $_POST['action']
+    ?? $_GET['action']
+    ?? ''
+));
+
+/**
+ * Use the same product permission resolver as the visible Products page.
+ * This supports installations where the menu key is either product_list
+ * or products.
+ */
+function product_api_require_permission(PDO $pdo, string $ability): void
+{
+    $permissions = catalog_product_permissions($pdo);
+
+    if (empty($permissions[$ability])) {
+        catalog_json(false, 'Permission denied.', null, 403);
+    }
+}
 
 /** @return array<int,string> */
 function product_post_array(string $key): array
@@ -407,7 +424,7 @@ function sync_design_variants(
 
 try {
     if ($action === 'options') {
-        catalog_require_permission($pdo, $menuKey, 'can_view');
+        product_api_require_permission($pdo, 'can_view');
 
         $categories = $pdo->query(
             "SELECT id, category_name, status
@@ -430,7 +447,7 @@ try {
     }
 
     if ($action === 'list') {
-        catalog_require_permission($pdo, $menuKey, 'can_view');
+        product_api_require_permission($pdo, 'can_view');
 
         $categoryId = max(0, (int)catalog_value('category_id', 0));
         $status = trim((string)catalog_value('status', ''));
@@ -451,6 +468,10 @@ try {
             $params['status'] = $status;
         }
 
+        /*
+         * Avoid GROUP BY across multiple one-to-many joins. That query can
+         * fail under ONLY_FULL_GROUP_BY and can multiply rows before counting.
+         */
         $sql =
             "SELECT
                 p.id,
@@ -467,17 +488,25 @@ try {
                 p.is_featured,
                 p.status,
                 p.updated_at,
-                c.category_name,
-                COUNT(DISTINCT cv.id) AS color_count,
-                COUNT(DISTINCT dv.id) AS design_count,
-                COUNT(DISTINCT pi.id) AS image_count
+                COALESCE(c.category_name, 'Unassigned') AS category_name,
+                (
+                    SELECT COUNT(*)
+                    FROM product_color_variants cv
+                    WHERE cv.product_id = p.id
+                ) AS color_count,
+                (
+                    SELECT COUNT(*)
+                    FROM product_design_variants dv
+                    WHERE dv.product_id = p.id
+                ) AS design_count,
+                (
+                    SELECT COUNT(*)
+                    FROM product_images pi
+                    WHERE pi.product_id = p.id
+                ) AS image_count
              FROM products p
-             INNER JOIN categories c ON c.id = p.category_id
-             LEFT JOIN product_color_variants cv ON cv.product_id = p.id
-             LEFT JOIN product_design_variants dv ON dv.product_id = p.id
-             LEFT JOIN product_images pi ON pi.product_id = p.id
+             LEFT JOIN categories c ON c.id = p.category_id
              WHERE " . implode(' AND ', $where) . "
-             GROUP BY p.id
              ORDER BY p.updated_at DESC, p.id DESC
              LIMIT 1000";
 
@@ -504,7 +533,7 @@ try {
     }
 
     if ($action === 'get') {
-        catalog_require_permission($pdo, $menuKey, 'can_view');
+        product_api_require_permission($pdo, 'can_view');
 
         $id = (int)catalog_value('id', 0);
 
@@ -582,9 +611,8 @@ try {
         catalog_require_csrf();
 
         $id = (int)catalog_value('id', 0);
-        catalog_require_permission(
+        product_api_require_permission(
             $pdo,
-            $menuKey,
             $id > 0 ? 'can_edit' : 'can_add'
         );
 
@@ -1015,7 +1043,7 @@ try {
 
     if ($action === 'delete') {
         catalog_require_csrf();
-        catalog_require_permission($pdo, $menuKey, 'can_delete');
+        product_api_require_permission($pdo, 'can_delete');
 
         $id = (int)catalog_value('id', 0);
 

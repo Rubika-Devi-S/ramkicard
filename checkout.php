@@ -3,23 +3,44 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/includes/storefront.php';
 
-sf_require_customer_login('login.php', 'checkout.php');
+$checkoutCustomerLoggedIn = sf_customer_logged_in();
+$checkoutAdminLoggedIn = sf_admin_logged_in();
 
-$checkoutCustomer = sf_customer_session();
+if (!$checkoutCustomerLoggedIn && !$checkoutAdminLoggedIn) {
+    header('Location: ' . sf_login_required_url('checkout.php'));
+    exit;
+}
+
+$checkoutCustomer = $checkoutCustomerLoggedIn
+    ? sf_customer_session()
+    : [];
+
+$checkoutAdmin = $checkoutAdminLoggedIn
+    ? sf_admin_session()
+    : [];
+
+$checkoutDefaultName = $checkoutCustomerLoggedIn
+    ? sf_customer_name()
+    : trim((string)($checkoutAdmin['name'] ?? ''));
+
 $checkoutAddress = [];
 
-$checkoutAddressStmt = $pdo->prepare(
-    "SELECT *
-     FROM customer_addresses
-     WHERE customer_id = :customer_id
-     ORDER BY is_default DESC, updated_at DESC, id DESC
-     LIMIT 1"
-);
-$checkoutAddressStmt->execute([
-    'customer_id' => sf_customer_id(),
-]);
-$checkoutAddress =
-    $checkoutAddressStmt->fetch(PDO::FETCH_ASSOC) ?: [];
+if ($checkoutCustomerLoggedIn) {
+    $checkoutAddressStmt = $pdo->prepare(
+        "SELECT *
+         FROM customer_addresses
+         WHERE customer_id = :customer_id
+         ORDER BY is_default DESC, updated_at DESC, id DESC
+         LIMIT 1"
+    );
+
+    $checkoutAddressStmt->execute([
+        'customer_id' => sf_customer_id(),
+    ]);
+
+    $checkoutAddress =
+        $checkoutAddressStmt->fetch(PDO::FETCH_ASSOC) ?: [];
+}
 
 $cartId = sf_active_cart_id($pdo, false);
 
@@ -61,6 +82,7 @@ $stmt = $pdo->prepare(
         ci.*,
         p.product_name,
         p.product_name_tamil,
+        p.slug,
         p.thumbnail_path,
         p.minimum_order_qty,
         p.quantity_step,
@@ -84,12 +106,55 @@ if (!$displayItems) {
 }
 
 $displaySubtotal = 0.0;
+$displayQuantityCount = 0;
 
 foreach ($displayItems as $item) {
+    $displayQuantity = (int)$item['quantity'];
+
     $displaySubtotal +=
         (float)$item['unit_price_snapshot']
-        * (int)$item['quantity'];
+        * $displayQuantity;
+
+    $displayQuantityCount += $displayQuantity;
 }
+
+$displayShippingEnabled =
+    sf_setting($pdo, 'shipping_enabled', '1') === '1';
+
+$displayShippingAmount = $displayShippingEnabled
+    ? max(
+        0,
+        (float)sf_setting(
+            $pdo,
+            'flat_shipping_amount',
+            '0'
+        )
+    )
+    : 0.0;
+
+$displayTaxEnabled =
+    sf_setting($pdo, 'tax_enabled', '0') === '1';
+
+$displayTaxPercentage = $displayTaxEnabled
+    ? max(
+        0,
+        (float)sf_setting(
+            $pdo,
+            'tax_percentage',
+            '0'
+        )
+    )
+    : 0.0;
+
+$displayTaxAmount = round(
+    $displaySubtotal * $displayTaxPercentage / 100,
+    2
+);
+
+$displayGrandTotal =
+    $displaySubtotal
+    + $displayShippingAmount
+    + $displayTaxAmount;
 
 $error = '';
 
@@ -564,6 +629,670 @@ $topStripItems = [];
 require __DIR__ . '/includes/storefront-header.php';
 ?>
 
+<style>
+  .checkout-page-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1.12fr) minmax(360px, .88fr);
+    gap: 28px;
+    align-items: start;
+  }
+
+  .checkout-customer-panel,
+  .checkout-review-panel {
+    min-width: 0;
+  }
+
+  .checkout-customer-panel {
+    padding: 28px;
+  }
+
+  .checkout-customer-panel > h3 {
+    margin: 0;
+  }
+
+  .checkout-customer-panel .form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+    margin-top: 18px !important;
+  }
+
+  .checkout-customer-panel .form-group {
+    min-width: 0;
+  }
+
+  .checkout-customer-panel .form-group.full {
+    grid-column: 1 / -1;
+  }
+
+  .checkout-customer-panel input,
+  .checkout-customer-panel textarea {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .checkout-admin-notice {
+    margin: 0 0 18px;
+    padding: 13px 15px;
+    color: #6b3f08;
+    font-size: 13px;
+    line-height: 1.6;
+    background: #fff7df;
+    border: 1px solid #efd79c;
+    border-radius: 12px;
+  }
+
+  .checkout-review-panel {
+    position: sticky;
+    top: 104px;
+    padding: 24px;
+    overflow: hidden;
+  }
+
+  .checkout-review-heading {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 18px;
+  }
+
+  .checkout-review-heading small {
+    display: block;
+    margin-bottom: 3px;
+    color: #8b7378;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+  }
+
+  .checkout-review-heading h3 {
+    margin: 0;
+  }
+
+  .checkout-item-badge {
+    flex: 0 0 auto;
+    padding: 7px 11px;
+    color: #7e1028;
+    font-size: 12px;
+    font-weight: 700;
+    background: #fff2f4;
+    border: 1px solid #f0d6dc;
+    border-radius: 999px;
+  }
+
+  .checkout-product-list {
+    display: grid;
+    gap: 14px;
+  }
+
+  .checkout-product-card {
+    display: grid;
+    grid-template-columns: 86px minmax(0, 1fr);
+    gap: 15px;
+    padding: 15px;
+    background: #fffdf9;
+    border: 1px solid #eee1d8;
+    border-radius: 16px;
+  }
+
+  .checkout-product-image {
+    display: block;
+    width: 86px;
+    height: 86px;
+    overflow: hidden;
+    background: #fff5df;
+    border: 1px solid #ebddcf;
+    border-radius: 13px;
+  }
+
+  .checkout-product-image img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .checkout-product-content {
+    min-width: 0;
+  }
+
+  .checkout-product-title {
+    display: block;
+    margin: 0;
+    overflow-wrap: anywhere;
+    color: #74152a;
+    font-size: 15px;
+    font-weight: 700;
+    line-height: 1.4;
+  }
+
+  .checkout-product-title:hover {
+    color: #a11937;
+  }
+
+  .checkout-name-tamil {
+    display: block;
+    margin-top: 2px;
+    color: #7b6a6e;
+    font-size: 12px;
+    font-weight: 500;
+  }
+
+  .checkout-product-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 8px;
+  }
+
+  .checkout-product-meta span {
+    padding: 4px 7px;
+    color: #68595d;
+    font-size: 10px;
+    line-height: 1.3;
+    background: #f8f1ed;
+    border-radius: 7px;
+  }
+
+  .checkout-product-notes {
+    margin: 8px 0 0;
+    color: #77686b;
+    font-size: 11px;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+  }
+
+  .checkout-product-price-row {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 12px;
+  }
+
+  .checkout-product-price-row span {
+    color: #76666a;
+    font-size: 12px;
+  }
+
+  .checkout-product-price-row strong {
+    color: #5e071d;
+    font-size: 15px;
+    white-space: nowrap;
+  }
+
+  .checkout-total-box {
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid #ebdfe1;
+  }
+
+  .checkout-total-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    padding: 7px 0;
+    color: #68595d;
+    font-size: 13px;
+  }
+
+  .checkout-total-row strong {
+    color: #33272a;
+  }
+
+  .checkout-total-row.grand {
+    margin-top: 7px;
+    padding-top: 15px;
+    color: #651127;
+    font-size: 17px;
+    font-weight: 700;
+    border-top: 1px dashed #dbc8cd;
+  }
+
+  .checkout-total-row.grand strong {
+    color: #8b0f2f;
+    font-size: 21px;
+  }
+
+  .checkout-review-note {
+    margin: 15px 0 0;
+    color: #7a696d;
+    font-size: 11px;
+    line-height: 1.6;
+    text-align: center;
+  }
+
+  @media (max-width: 980px) {
+    .checkout-page-layout {
+      grid-template-columns: 1fr;
+    }
+
+    .checkout-review-panel {
+      position: static;
+      order: -1;
+    }
+  }
+
+  @media (max-width: 680px) {
+    .commerce-page .container {
+      padding-right: 14px;
+      padding-left: 14px;
+    }
+
+    .checkout-customer-panel,
+    .checkout-review-panel {
+      padding: 18px;
+      border-radius: 16px;
+    }
+
+    .checkout-customer-panel .form-grid {
+      grid-template-columns: 1fr;
+      gap: 13px;
+    }
+
+    .checkout-customer-panel .form-group.full {
+      grid-column: auto;
+    }
+
+    .checkout-product-card {
+      grid-template-columns: 70px minmax(0, 1fr);
+      gap: 12px;
+      padding: 12px;
+    }
+
+    .checkout-product-image {
+      width: 70px;
+      height: 70px;
+    }
+
+    .checkout-product-price-row {
+      align-items: flex-start;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .checkout-product-price-row strong {
+      white-space: normal;
+    }
+
+    .checkout-review-heading {
+      align-items: center;
+    }
+  }
+
+  @media (max-width: 420px) {
+    .checkout-product-card {
+      grid-template-columns: 62px minmax(0, 1fr);
+      gap: 10px;
+      padding: 10px;
+    }
+
+    .checkout-product-image {
+      width: 62px;
+      height: 62px;
+    }
+
+    .checkout-product-title {
+      font-size: 14px;
+    }
+
+    .checkout-item-badge {
+      padding: 6px 9px;
+      font-size: 11px;
+    }
+  }
+
+  /* ================================================================
+     Mobile-first checkout refinement
+     ================================================================ */
+
+  .checkout-mobile-action {
+    display: none;
+  }
+
+  @media (max-width: 680px) {
+    .commerce-page {
+      padding-bottom: 104px;
+    }
+
+    .commerce-page .store-page-title {
+      margin-bottom: 18px;
+      padding-top: 4px;
+    }
+
+    .commerce-page .store-page-title .decor-line {
+      margin-bottom: 8px;
+      transform: scale(.8);
+    }
+
+    .commerce-page .store-page-title > span {
+      font-size: 10px;
+      letter-spacing: .15em;
+    }
+
+    .commerce-page .store-page-title h2 {
+      margin-top: 5px;
+      font-size: clamp(27px, 8vw, 34px);
+      line-height: 1.08;
+    }
+
+    .checkout-page-layout {
+      gap: 16px;
+    }
+
+    .checkout-review-panel,
+    .checkout-customer-panel {
+      width: 100%;
+      padding: 16px;
+      background: rgba(255, 255, 255, .96);
+      border: 1px solid #eadfe1;
+      border-radius: 18px;
+      box-shadow: 0 12px 30px rgba(74, 20, 36, .08);
+    }
+
+    .checkout-review-panel {
+      border-top: 3px solid #c89438;
+    }
+
+    .checkout-review-heading {
+      gap: 10px;
+      margin-bottom: 8px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid #eee4e6;
+    }
+
+    .checkout-review-heading small {
+      margin-bottom: 2px;
+      font-size: 9px;
+      letter-spacing: .12em;
+    }
+
+    .checkout-review-heading h3,
+    .checkout-customer-panel > h3 {
+      font-size: 23px;
+      line-height: 1.15;
+    }
+
+    .checkout-item-badge {
+      padding: 5px 9px;
+      font-size: 10px;
+      background: #fff7f8;
+    }
+
+    .checkout-product-list {
+      gap: 0;
+    }
+
+    .checkout-product-card {
+      grid-template-columns: 74px minmax(0, 1fr);
+      gap: 12px;
+      padding: 14px 0;
+      background: transparent;
+      border: 0;
+      border-bottom: 1px solid #eee5e6;
+      border-radius: 0;
+    }
+
+    .checkout-product-card:last-child {
+      border-bottom: 0;
+    }
+
+    .checkout-product-image {
+      width: 74px;
+      height: 88px;
+      padding: 3px;
+      background: #fff9ee;
+      border-radius: 11px;
+    }
+
+    .checkout-product-image img {
+      object-fit: contain;
+      border-radius: 8px;
+    }
+
+    .checkout-product-title {
+      font-size: 15px;
+      line-height: 1.3;
+    }
+
+    .checkout-name-tamil {
+      margin-top: 3px;
+      font-size: 11px;
+      line-height: 1.5;
+    }
+
+    .checkout-product-meta {
+      display: grid;
+      gap: 3px;
+      margin-top: 7px;
+    }
+
+    .checkout-product-meta span {
+      position: relative;
+      padding: 0 0 0 11px;
+      color: #756469;
+      font-size: 10px;
+      line-height: 1.5;
+      background: transparent;
+      border-radius: 0;
+    }
+
+    .checkout-product-meta span::before {
+      content: "";
+      position: absolute;
+      top: .58em;
+      left: 0;
+      width: 4px;
+      height: 4px;
+      background: #c89438;
+      border-radius: 50%;
+    }
+
+    .checkout-product-notes {
+      margin-top: 7px;
+      padding: 7px 8px;
+      font-size: 10px;
+      background: #fbf5f1;
+      border-radius: 8px;
+    }
+
+    .checkout-product-price-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-direction: row;
+      gap: 8px;
+      margin-top: 9px;
+    }
+
+    .checkout-product-price-row span {
+      font-size: 11px;
+    }
+
+    .checkout-product-price-row strong {
+      font-size: 14px;
+      white-space: nowrap;
+    }
+
+    .checkout-total-box {
+      margin-top: 8px;
+      padding-top: 10px;
+    }
+
+    .checkout-total-row {
+      padding: 6px 0;
+      font-size: 12px;
+    }
+
+    .checkout-total-row.grand {
+      margin-top: 4px;
+      padding-top: 12px;
+      font-size: 16px;
+    }
+
+    .checkout-total-row.grand strong {
+      font-size: 21px;
+    }
+
+    .checkout-review-note {
+      display: none;
+    }
+
+    .checkout-customer-panel {
+      padding-bottom: 18px;
+    }
+
+    .checkout-admin-notice {
+      margin-bottom: 14px;
+      padding: 10px 12px;
+      font-size: 11px;
+      border-radius: 10px;
+    }
+
+    .checkout-customer-panel .form-grid {
+      gap: 11px;
+      margin-top: 14px !important;
+    }
+
+    .checkout-customer-panel input,
+    .checkout-customer-panel textarea {
+      min-height: 50px;
+      padding: 12px 13px;
+      font-size: 16px;
+      background: #fff;
+      border: 1px solid #dfd4d6;
+      border-radius: 11px;
+      box-shadow: none;
+    }
+
+    .checkout-customer-panel textarea {
+      min-height: 104px;
+      resize: vertical;
+    }
+
+    .checkout-customer-panel input:focus,
+    .checkout-customer-panel textarea:focus {
+      border-color: #a51b3b;
+      box-shadow: 0 0 0 3px rgba(165, 27, 59, .09);
+      outline: 0;
+    }
+
+    .checkout-customer-panel .notice {
+      margin-top: 14px;
+      padding: 11px 12px;
+      font-size: 10px;
+      line-height: 1.55;
+      border-radius: 10px;
+    }
+
+    .checkout-main-submit {
+      display: none !important;
+    }
+
+    .checkout-mobile-action {
+      position: fixed;
+      right: 0;
+      bottom: 0;
+      left: 0;
+      z-index: 999;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      padding:
+        11px
+        max(14px, env(safe-area-inset-right))
+        max(11px, env(safe-area-inset-bottom))
+        max(14px, env(safe-area-inset-left));
+      background: rgba(255, 255, 255, .98);
+      border-top: 1px solid #e5d9dc;
+      box-shadow: 0 -12px 30px rgba(56, 15, 28, .14);
+      backdrop-filter: blur(12px);
+    }
+
+    .checkout-mobile-total {
+      min-width: 0;
+    }
+
+    .checkout-mobile-total small {
+      display: block;
+      color: #78676b;
+      font-size: 10px;
+      line-height: 1.2;
+    }
+
+    .checkout-mobile-total strong {
+      display: block;
+      margin-top: 2px;
+      color: #8c1231;
+      font-size: 19px;
+      line-height: 1.2;
+      white-space: nowrap;
+    }
+
+    .checkout-mobile-action button {
+      min-width: 145px;
+      min-height: 48px;
+      padding: 11px 18px;
+      color: #fff;
+      font-size: 14px;
+      font-weight: 700;
+      background: linear-gradient(135deg, #9d1736, #6f0d25);
+      border: 0;
+      border-radius: 12px;
+      box-shadow: 0 10px 22px rgba(113, 13, 38, .24);
+      cursor: pointer;
+    }
+
+    .whatsapp-float {
+      bottom: 92px !important;
+    }
+  }
+
+  @media (max-width: 380px) {
+    .commerce-page .container {
+      padding-right: 10px;
+      padding-left: 10px;
+    }
+
+    .checkout-review-panel,
+    .checkout-customer-panel {
+      padding: 13px;
+      border-radius: 15px;
+    }
+
+    .checkout-product-card {
+      grid-template-columns: 66px minmax(0, 1fr);
+      gap: 10px;
+    }
+
+    .checkout-product-image {
+      width: 66px;
+      height: 80px;
+    }
+
+    .checkout-mobile-action {
+      gap: 10px;
+      padding-right: 10px;
+      padding-left: 10px;
+    }
+
+    .checkout-mobile-action button {
+      min-width: 128px;
+      padding-right: 13px;
+      padding-left: 13px;
+    }
+
+    .checkout-mobile-total strong {
+      font-size: 17px;
+    }
+  }
+
+</style>
+
 <main class="store-page commerce-page">
   <div class="container">
     <div class="section-title store-page-title">
@@ -578,17 +1307,26 @@ require __DIR__ . '/includes/storefront-header.php';
       </div>
     <?php endif; ?>
 
-    <div class="checkout-grid">
+    <div class="checkout-grid checkout-page-layout">
       <form
+        id="checkoutForm"
         method="POST"
         action="checkout.php"
-        class="store-panel glass-card"
+        class="store-panel glass-card checkout-customer-panel"
       >
         <input
           type="hidden"
           name="csrf_token"
           value="<?= sf_e(sf_csrf_token()); ?>"
         >
+
+        <?php if ($checkoutAdminLoggedIn && !$checkoutCustomerLoggedIn): ?>
+          <div class="checkout-admin-notice">
+            <strong>Administrator checkout test mode:</strong>
+            enter the actual customer and delivery details before placing
+            this test order.
+          </div>
+        <?php endif; ?>
 
         <h3>Customer Details</h3>
 
@@ -597,7 +1335,7 @@ require __DIR__ . '/includes/storefront-header.php';
             <input
               type="text"
               name="name"
-              value="<?= sf_e($_POST['name'] ?? sf_customer_name()); ?>"
+              value="<?= sf_e($_POST['name'] ?? $checkoutDefaultName); ?>"
               placeholder="Full Name"
               maxlength="150"
               required
@@ -727,51 +1465,159 @@ require __DIR__ . '/includes/storefront-header.php';
           after adding its credentials and callback verification.
         </div>
 
-        <button class="submit-btn" type="submit">
+        <button
+          class="submit-btn checkout-main-submit"
+          type="submit"
+        >
           Place Order
         </button>
       </form>
 
-      <aside class="store-panel glass-card checkout-summary">
-        <h3>Order Summary</h3>
+      <aside
+        class="store-panel glass-card checkout-summary checkout-review-panel"
+      >
+        <div class="checkout-review-heading">
+          <div>
+            <small>Products in your cart</small>
+            <h3>Order Summary</h3>
+          </div>
 
-        <?php foreach ($displayItems as $item): ?>
-          <?php
-          $lineTotal =
-              (float)$item['unit_price_snapshot']
-              * (int)$item['quantity'];
-          ?>
-          <div class="summary-row" style="margin-top:14px">
-            <span>
-              <span class="checkout-product-name">
-                <?= sf_e($item['product_name']); ?>
+          <span class="checkout-item-badge">
+            <?= count($displayItems); ?>
+            <?= count($displayItems) === 1 ? 'item' : 'items'; ?>
+          </span>
+        </div>
 
-                <?php if (!empty(
-                    $item['product_name_tamil']
-                )): ?>
+        <div class="checkout-product-list">
+          <?php foreach ($displayItems as $item): ?>
+            <?php
+            $quantity = (int)$item['quantity'];
+            $unitPrice = (float)$item['unit_price_snapshot'];
+            $lineTotal = $unitPrice * $quantity;
+            $productUrl = 'product.php?slug='
+                . rawurlencode((string)$item['slug']);
+            ?>
+            <article class="checkout-product-card">
+              <a
+                class="checkout-product-image"
+                href="<?= sf_e($productUrl); ?>"
+                aria-label="View <?= sf_e($item['product_name']); ?>"
+              >
+                <img
+                  src="<?= sf_e(sf_media_path(
+                      $item['thumbnail_path'],
+                      'banner.png'
+                  )); ?>"
+                  alt="<?= sf_e($item['product_name']); ?>"
+                  loading="lazy"
+                >
+              </a>
+
+              <div class="checkout-product-content">
+                <a
+                  class="checkout-product-title"
+                  href="<?= sf_e($productUrl); ?>"
+                >
+                  <?= sf_e($item['product_name']); ?>
+                </a>
+
+                <?php if (!empty($item['product_name_tamil'])): ?>
                   <small
                     class="product-name-tamil checkout-name-tamil"
                     lang="ta"
                   >
-                    <?= sf_e(
-                        $item['product_name_tamil']
-                    ); ?>
+                    <?= sf_e($item['product_name_tamil']); ?>
                   </small>
                 <?php endif; ?>
-              </span>
 
-              × <?= (int)$item['quantity']; ?>
-            </span>
-            <strong><?= sf_e(sf_money($lineTotal)); ?></strong>
-          </div>
-        <?php endforeach; ?>
+                <div class="checkout-product-meta">
+                  <?php if (!empty($item['color_name'])): ?>
+                    <span>
+                      Colour: <?= sf_e($item['color_name']); ?>
+                    </span>
+                  <?php endif; ?>
 
-        <div class="summary-row total">
-          <span>Current Subtotal</span>
-          <span><?= sf_e(sf_money($displaySubtotal)); ?></span>
+                  <?php if (!empty($item['design_name'])): ?>
+                    <span>
+                      Design: <?= sf_e($item['design_name']); ?>
+                    </span>
+                  <?php endif; ?>
+                </div>
+
+                <?php if (!empty($item['customer_item_notes'])): ?>
+                  <p class="checkout-product-notes">
+                    <strong>Customization:</strong>
+                    <?= sf_e($item['customer_item_notes']); ?>
+                  </p>
+                <?php endif; ?>
+
+                <div class="checkout-product-price-row">
+                  <span>
+                    <?= $quantity; ?>
+                    × <?= sf_e(sf_money($unitPrice)); ?>
+                  </span>
+
+                  <strong><?= sf_e(sf_money($lineTotal)); ?></strong>
+                </div>
+              </div>
+            </article>
+          <?php endforeach; ?>
         </div>
+
+        <div class="checkout-total-box">
+          <div class="checkout-total-row">
+            <span>
+              Subtotal (<?= $displayQuantityCount; ?> units)
+            </span>
+            <strong><?= sf_e(sf_money($displaySubtotal)); ?></strong>
+          </div>
+
+          <div class="checkout-total-row">
+            <span>Shipping</span>
+            <strong>
+              <?= $displayShippingAmount > 0
+                  ? sf_e(sf_money($displayShippingAmount))
+                  : 'Free'; ?>
+            </strong>
+          </div>
+
+          <?php if ($displayTaxEnabled): ?>
+            <div class="checkout-total-row">
+              <span>
+                Tax (<?= sf_e(
+                    rtrim(
+                        rtrim(number_format($displayTaxPercentage, 2), '0'),
+                        '.'
+                    )
+                ); ?>%)
+              </span>
+              <strong><?= sf_e(sf_money($displayTaxAmount)); ?></strong>
+            </div>
+          <?php endif; ?>
+
+          <div class="checkout-total-row grand">
+            <span>Total</span>
+            <strong><?= sf_e(sf_money($displayGrandTotal)); ?></strong>
+          </div>
+        </div>
+
+        <p class="checkout-review-note">
+          Product price, quantity, selected options and stock are validated
+          again when the order is placed.
+        </p>
       </aside>
     </div>
+  </div>
+
+  <div class="checkout-mobile-action" aria-label="Checkout total and action">
+    <div class="checkout-mobile-total">
+      <small>Total payable</small>
+      <strong><?= sf_e(sf_money($displayGrandTotal)); ?></strong>
+    </div>
+
+    <button type="submit" form="checkoutForm">
+      Place Order
+    </button>
   </div>
 </main>
 

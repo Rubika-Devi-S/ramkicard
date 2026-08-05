@@ -259,7 +259,96 @@ try {
     $successMessage =
         'Your enquiry '
         . $enquiryNumber
-        . ' has been received. Our team will contact you shortly.';
+        . ' has been received. WhatsApp will open with the details.';
+
+    $companyName = sf_setting($pdo, 'company_name', 'Ramki Cards');
+
+    $whatsappNumber = sf_setting(
+        $pdo,
+        'whatsapp_number',
+        sf_setting($pdo, 'phone_number', '96299 54411')
+    );
+
+    $scheme = (
+        !empty($_SERVER['HTTPS'])
+        && strtolower((string)$_SERVER['HTTPS']) !== 'off'
+    )
+        ? 'https'
+        : 'http';
+
+    $host = trim((string)($_SERVER['HTTP_HOST'] ?? ''));
+
+    $scriptDirectory = str_replace(
+        '\\',
+        '/',
+        dirname((string)($_SERVER['SCRIPT_NAME'] ?? '/'))
+    );
+
+    $scriptDirectory = $scriptDirectory === '/'
+        ? ''
+        : rtrim($scriptDirectory, '/');
+
+    $productPath =
+        $scriptDirectory
+        . '/product.php?slug='
+        . rawurlencode((string)$product['slug']);
+
+    $productUrl = $host !== ''
+        ? $scheme . '://' . $host . $productPath
+        : $productPath;
+
+    /*
+     * Use plain text in the WhatsApp composer. Markdown-style asterisks are
+     * intentionally avoided because some mobile/browser combinations show
+     * them literally before the message is sent.
+     */
+    $whatsappLines = [
+        $companyName . ' - Product Enquiry',
+        '--------------------------------',
+        '',
+        'Enquiry No: ' . $enquiryNumber,
+        'Customer: ' . $name,
+        'Mobile: ' . $mobile,
+    ];
+
+    if ($email !== '') {
+        $whatsappLines[] = 'Email: ' . $email;
+    }
+
+    $whatsappLines[] = '';
+    $whatsappLines[] = 'Product Details';
+    $whatsappLines[] = '---------------';
+    $whatsappLines[] = 'Product: ' . $product['product_name'];
+
+    if (!empty($color['color_name'])) {
+        $whatsappLines[] =
+            'Colour: ' . $color['color_name'];
+    }
+
+    if (!empty($design['design_name'])) {
+        $whatsappLines[] =
+            'Design: ' . $design['design_name'];
+    }
+
+    $whatsappLines[] = 'Quantity: ' . $quantity;
+    $whatsappLines[] = 'Unit Price: ' . sf_money($unitPrice);
+    $whatsappLines[] =
+        'Estimated Total: ' . sf_money($lineTotal);
+
+    if ($notes !== '') {
+        $whatsappLines[] = '';
+        $whatsappLines[] = 'Requirements:';
+        $whatsappLines[] = $notes;
+    }
+
+    $whatsappLines[] = '';
+    $whatsappLines[] = 'Product Link:';
+    $whatsappLines[] = $productUrl;
+
+    $whatsappUrl = sf_whatsapp_url(
+        $whatsappNumber,
+        implode("\n", $whatsappLines)
+    );
 
     /*
     |--------------------------------------------------------------------------
@@ -281,11 +370,19 @@ try {
             [
                 'enquiry_number' => $enquiryNumber,
                 'message' => $successMessage,
+                'whatsapp_url' => $whatsappUrl,
+                'product_name' => $product['product_name'],
+                'selected_color_name' =>
+                    $color['color_name'] ?? '',
+                'selected_design_name' =>
+                    $design['design_name'] ?? '',
+                'quantity' => $quantity,
+                'unit_price' => $unitPrice,
+                'line_total' => $lineTotal,
             ]
         );
     }
 
-    $companyName = sf_setting($pdo, 'company_name', 'Ramki Cards');
     $phoneNumber = sf_setting($pdo, 'phone_number', '96299 54411');
 
     $adminStmt = $pdo->prepare(
@@ -343,11 +440,11 @@ try {
         'message' => $successMessage,
     ];
 
-    header(
-        'Location: product.php?slug='
-        . rawurlencode((string)$product['slug'])
-        . '#enquiry'
-    );
+    /*
+     * JavaScript-free fallback: after saving the enquiry, continue directly
+     * to WhatsApp with the same validated details.
+     */
+    header('Location: ' . $whatsappUrl);
     exit;
 } catch (Throwable $e) {
     if ($pdo->inTransaction()) {

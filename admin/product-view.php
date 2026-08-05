@@ -39,7 +39,7 @@ $productStmt = $pdo->prepare(
         c.category_name,
         pr.range_name
      FROM products p
-     INNER JOIN categories c
+     LEFT JOIN categories c
         ON c.id = p.category_id
      LEFT JOIN price_ranges pr
         ON pr.id = p.price_range_id
@@ -657,7 +657,7 @@ require __DIR__ . '/includes/header.php';
         <small>Separate product details page</small>
         <h1><?= e($product['product_name']); ?></h1>
         <p>
-            <?= e($product['category_name']); ?>
+            <?= e($product['category_name'] ?: 'Unassigned'); ?>
             · SKU <?= e($product['sku'] ?: 'Not assigned'); ?>
         </p>
     </section>
