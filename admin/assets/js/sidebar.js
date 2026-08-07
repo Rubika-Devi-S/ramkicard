@@ -82,6 +82,71 @@
 
         /*
         |--------------------------------------------------------------------------
+        | Keep the current page visible in the sidebar
+        |--------------------------------------------------------------------------
+        |
+        | Menu order remains controlled by admin_menus.sort_order.  We only move
+        | the sidebar scroll position so a menu near the bottom (for example
+        | Activity Logs) is immediately visible after navigation.
+        |
+        */
+
+        function revealActiveSidebarItem() {
+            if (!sidebarScroll) {
+                return;
+            }
+
+            let activeLink = sidebarScroll.querySelector(
+                '.sidebar-link.active:not(.sidebar-parent-link)'
+            );
+
+            /*
+             * In collapsed mode a child route may be hidden inside its submenu.
+             * Reveal the active parent icon instead.
+             */
+            if (
+                !activeLink ||
+                (isSidebarCollapsed() &&
+                    activeLink.classList.contains('sidebar-child-link'))
+            ) {
+                activeLink = sidebarScroll.querySelector(
+                    '.sidebar-parent-link.active'
+                );
+            }
+
+            if (!activeLink) {
+                return;
+            }
+
+            const containerRect =
+                sidebarScroll.getBoundingClientRect();
+            const activeRect = activeLink.getBoundingClientRect();
+            const safeGap = 16;
+
+            const isFullyVisible =
+                activeRect.top >= containerRect.top + safeGap &&
+                activeRect.bottom <= containerRect.bottom - safeGap;
+
+            if (isFullyVisible) {
+                return;
+            }
+
+            const centredOffset =
+                activeRect.top -
+                containerRect.top -
+                (sidebarScroll.clientHeight - activeRect.height) / 2;
+
+            sidebarScroll.scrollTo({
+                top: Math.max(
+                    0,
+                    sidebarScroll.scrollTop + centredOffset
+                ),
+                behavior: 'auto'
+            });
+        }
+
+        /*
+        |--------------------------------------------------------------------------
         | Mobile sidebar
         |--------------------------------------------------------------------------
         */
@@ -93,6 +158,10 @@
             if (backdrop) {
                 backdrop.classList.add('show');
             }
+
+            window.requestAnimationFrame(
+                revealActiveSidebarItem
+            );
         }
 
         function closeMobileSidebar() {
@@ -633,5 +702,15 @@
         */
 
         restoreSidebarState();
+
+        /*
+         * Wait until the active submenu/open state and sidebar dimensions have
+         * been applied before calculating the scroll position.
+         */
+        window.requestAnimationFrame(() => {
+            window.requestAnimationFrame(
+                revealActiveSidebarItem
+            );
+        });
     });
 })();

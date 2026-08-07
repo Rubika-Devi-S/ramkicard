@@ -118,25 +118,46 @@ if ((int)$product['manage_stock'] === 1) {
     }
 }
 
-$color = sf_variant(
-    $pdo,
-    'product_color_variants',
-    $colorId,
-    $productId
-);
+$color = $colorId > 0
+    ? sf_variant(
+        $pdo,
+        'product_color_variants',
+        $colorId,
+        $productId
+    )
+    : [];
 
-$design = sf_variant(
-    $pdo,
-    'product_design_variants',
-    $designId,
-    $productId
-);
+$design = $designId > 0
+    ? sf_variant(
+        $pdo,
+        'product_design_variants',
+        $designId,
+        $productId
+    )
+    : [];
 
-if ((int)$product['has_color_variants'] === 1 && !$color) {
+/*
+ * Colour and design are optional product-detail choices for an enquiry.
+ * When the customer does select one, still validate that the variant is
+ * active and belongs to this product before storing it.
+ */
+if (
+    $colorId > 0
+    && (
+        (int)$product['has_color_variants'] !== 1
+        || !$color
+    )
+) {
     product_enquiry_fail($product, 'Select a valid colour.');
 }
 
-if ((int)$product['has_design_variants'] === 1 && !$design) {
+if (
+    $designId > 0
+    && (
+        (int)$product['has_design_variants'] !== 1
+        || !$design
+    )
+) {
     product_enquiry_fail($product, 'Select a valid design.');
 }
 

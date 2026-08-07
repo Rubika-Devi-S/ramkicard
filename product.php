@@ -839,10 +839,6 @@ $error = trim((string)($_GET['error'] ?? ''));
     background: #ff9f00;
 }
 
-.marketplace-action.enquiry-action {
-    background: #fb641b;
-}
-
 .marketplace-action.login-action {
     background: #8b1231;
 }
@@ -1038,6 +1034,36 @@ $error = trim((string)($_GET['error'] ?? ''));
 .marketplace-spec-row>span:last-child {
     color: #333;
     font-weight: 500;
+}
+
+.marketplace-product-options {
+    padding: 18px 0 4px;
+    border-bottom: 1px solid #eee;
+}
+
+.marketplace-product-options-head {
+    margin-bottom: 10px;
+}
+
+.marketplace-product-options-head .marketplace-section-title {
+    margin: 0;
+}
+
+.marketplace-product-options .variant-picker {
+    margin: 0 0 12px;
+}
+
+.marketplace-product-options .variant-picker:last-child {
+    margin-bottom: 12px;
+}
+
+.marketplace-product-options .variant-option-card {
+    border-radius: 3px;
+    box-shadow: none;
+}
+
+.marketplace-product-options .variant-option-thumb {
+    border-radius: 2px;
 }
 
 .marketplace-description-block {
@@ -1312,9 +1338,8 @@ $error = trim((string)($_GET['error'] ?? ''));
                     </div>
                 </div>
 
-                <?php if ($hasCheckout || $hasEnquiry): ?>
-                <div class="marketplace-action-bar<?= $hasCheckout && $hasEnquiry ? '' : ' single'; ?>">
-                    <?php if ($hasCheckout): ?>
+                <?php if ($hasCheckout): ?>
+                <div class="marketplace-action-bar single">
                     <?php if ($purchaseLoggedIn): ?>
                     <a href="#buy" class="marketplace-action cart-action">
                         <span aria-hidden="true">🛒</span>
@@ -1324,14 +1349,6 @@ $error = trim((string)($_GET['error'] ?? ''));
                     <a href="<?= sf_e($productLoginUrl); ?>" class="marketplace-action login-action">
                         <span aria-hidden="true">🔐</span>
                         LOGIN TO BUY
-                    </a>
-                    <?php endif; ?>
-                    <?php endif; ?>
-
-                    <?php if ($hasEnquiry): ?>
-                    <a href="#enquiry" class="marketplace-action enquiry-action">
-                        <span aria-hidden="true">⚡</span>
-                        ENQUIRE NOW
                     </a>
                     <?php endif; ?>
                 </div>
@@ -1418,17 +1435,6 @@ $error = trim((string)($_GET['error'] ?? ''));
                             </span>
                         </div>
 
-                        <?php if ($colors || $designs): ?>
-                        <div class="marketplace-offer-item">
-                            <span class="marketplace-offer-icon">✓</span>
-                            <span>
-                                <strong>Customisation:</strong>
-                                Choose the available
-                                <?= $colors ? 'colour' : ''; ?><?= $colors && $designs ? ' and ' : ''; ?><?= $designs ? 'design' : ''; ?>
-                                options below.
-                            </span>
-                        </div>
-                        <?php endif; ?>
                     </div>
                 </div>
 
@@ -1456,6 +1462,125 @@ $error = trim((string)($_GET['error'] ?? ''));
                         <span>Delivery details will be confirmed with your order.</span>
                     </div>
                 </div>
+
+                <?php if ($colors || $designs): ?>
+                <section class="marketplace-product-options" aria-labelledby="productOptionsTitle">
+                    <div class="marketplace-product-options-head">
+                        <h2 class="marketplace-section-title" id="productOptionsTitle">Product Options</h2>
+                    </div>
+
+                    <?php if ($colors): ?>
+                    <fieldset class="variant-picker">
+                        <legend>Colour</legend>
+
+                        <div class="variant-options" role="group" aria-label="Available product colours">
+                            <?php foreach ($colors as $color): ?>
+                            <?php
+                  $colorImagePath = trim(
+                      (string)($color['image_path'] ?? '')
+                  );
+
+                  $colorPreviewImage = $colorImagePath !== ''
+                      ? sf_media_path($colorImagePath, $mainImage)
+                      : $mainImage;
+
+                  $colorCode = trim(
+                      (string)($color['color_code'] ?? '')
+                  );
+
+                  if (!preg_match('/^#?[0-9a-f]{3,8}$/i', $colorCode)) {
+                      $colorCode = '#eadfd1';
+                  } elseif (!str_starts_with($colorCode, '#')) {
+                      $colorCode = '#' . $colorCode;
+                  }
+                  ?>
+
+                            <label class="variant-option">
+                                <input type="checkbox" value="<?= (int)$color['id']; ?>" data-product-variant-choice
+                                    data-variant-kind="colour" data-variant-field="color_variant_id"
+                                    data-variant-preview="<?= sf_e($colorPreviewImage); ?>"
+                                    data-variant-label="<?= sf_e($color['color_name']); ?>">
+
+                                <span class="variant-option-card">
+                                    <span class="variant-option-check">✓</span>
+
+                                    <span class="variant-option-thumb">
+                                        <?php if ($colorImagePath !== ''): ?>
+                                        <img src="<?= sf_e($colorPreviewImage); ?>"
+                                            alt="<?= sf_e($color['color_name']); ?>" loading="lazy">
+                                        <?php else: ?>
+                                        <span class="variant-color-swatch"
+                                            style="--variant-color: <?= sf_e($colorCode); ?>" aria-hidden="true"></span>
+                                        <?php endif; ?>
+                                    </span>
+
+                                    <span class="variant-option-name">
+                                        <?= sf_e($color['color_name']); ?>
+                                    </span>
+
+                                    <?php if ((float)$color['price_adjustment'] !== 0.0): ?>
+                                    <small class="variant-option-price">
+                                        <?= (float)$color['price_adjustment'] > 0 ? '+' : ''; ?><?= sf_e(
+                                            sf_money($color['price_adjustment'])
+                                        ); ?>
+                                    </small>
+                                    <?php endif; ?>
+                                </span>
+                            </label>
+                            <?php endforeach; ?>
+                        </div>
+                    </fieldset>
+                    <?php endif; ?>
+
+                    <?php if ($designs): ?>
+                    <fieldset class="variant-picker">
+                        <legend>Design</legend>
+
+                        <div class="variant-options" role="group" aria-label="Available product designs">
+                            <?php foreach ($designs as $design): ?>
+                            <?php
+                  $designImagePath = trim(
+                      (string)($design['image_path'] ?? '')
+                  );
+
+                  $designPreviewImage = $designImagePath !== ''
+                      ? sf_media_path($designImagePath, $mainImage)
+                      : $mainImage;
+                  ?>
+
+                            <label class="variant-option">
+                                <input type="checkbox" value="<?= (int)$design['id']; ?>" data-product-variant-choice
+                                    data-variant-kind="design" data-variant-field="design_variant_id"
+                                    data-variant-preview="<?= sf_e($designPreviewImage); ?>"
+                                    data-variant-label="<?= sf_e($design['design_name']); ?>">
+
+                                <span class="variant-option-card">
+                                    <span class="variant-option-check">✓</span>
+
+                                    <span class="variant-option-thumb">
+                                        <img src="<?= sf_e($designPreviewImage); ?>"
+                                            alt="<?= sf_e($design['design_name']); ?>" loading="lazy">
+                                    </span>
+
+                                    <span class="variant-option-name">
+                                        <?= sf_e($design['design_name']); ?>
+                                    </span>
+
+                                    <?php if ((float)$design['price_adjustment'] !== 0.0): ?>
+                                    <small class="variant-option-price">
+                                        <?= (float)$design['price_adjustment'] > 0 ? '+' : ''; ?><?= sf_e(
+                                            sf_money($design['price_adjustment'])
+                                        ); ?>
+                                    </small>
+                                    <?php endif; ?>
+                                </span>
+                            </label>
+                            <?php endforeach; ?>
+                        </div>
+                    </fieldset>
+                    <?php endif; ?>
+                </section>
+                <?php endif; ?>
 
                 <div class="marketplace-description-block">
                     <h2 class="marketplace-section-title">Product Description</h2>
@@ -1485,7 +1610,7 @@ $error = trim((string)($_GET['error'] ?? ''));
                 <?php if ($purchaseLoggedIn): ?>
                 <form action="add_to_cart.php" method="POST"
                     class="purchase-box marketplace-purchase-box marketplace-cart-form js-add-to-cart-form" id="buy">
-                    <h3>Select Options & Quantity</h3>
+                    <h3>Quantity & Customization</h3>
 
                     <?php if ($adminLoggedIn && !$customerLoggedIn): ?>
                     <div class="purchase-message success">
@@ -1500,140 +1625,15 @@ $error = trim((string)($_GET['error'] ?? ''));
 
                     <input type="hidden" name="return_url" value="<?= sf_e($productReturnUrl); ?>">
 
+                    <?php if ($colors): ?>
+                    <input type="hidden" name="color_variant_id" value="" data-selected-variant-kind="colour">
+                    <?php endif; ?>
+
+                    <?php if ($designs): ?>
+                    <input type="hidden" name="design_variant_id" value="" data-selected-variant-kind="design">
+                    <?php endif; ?>
+
                     <div class="purchase-grid">
-                        <?php if ($colors): ?>
-                        <fieldset class="variant-picker full">
-                            <legend>
-                                Colour
-                                <small>Select a colour to preview it</small>
-                            </legend>
-
-                            <div class="variant-options" role="radiogroup" aria-label="Choose product colour">
-                                <?php foreach ($colors as $colorIndex => $color): ?>
-                                <?php
-                      $colorImagePath = trim(
-                          (string)($color['image_path'] ?? '')
-                      );
-
-                      $colorPreviewImage = $colorImagePath !== ''
-                          ? sf_media_path($colorImagePath, $mainImage)
-                          : $mainImage;
-
-                      $colorCode = trim(
-                          (string)($color['color_code'] ?? '')
-                      );
-
-                      if (!preg_match(
-                          '/^#?[0-9a-f]{3,8}$/i',
-                          $colorCode
-                      )) {
-                          $colorCode = '#eadfd1';
-                      } elseif (!str_starts_with($colorCode, '#')) {
-                          $colorCode = '#' . $colorCode;
-                      }
-                      ?>
-
-                                <label class="variant-option">
-                                    <input type="radio" name="color_variant_id" value="<?= (int)$color['id']; ?>"
-                                        data-variant-input data-variant-kind="colour" data-variant-preview="<?= sf_e(
-                              $colorPreviewImage
-                          ); ?>" data-variant-label="<?= sf_e(
-                              $color['color_name']
-                          ); ?>" <?= $colorIndex === 0 ? 'required' : ''; ?>>
-
-                                    <span class="variant-option-card">
-                                        <span class="variant-option-check">✓</span>
-
-                                        <span class="variant-option-thumb">
-                                            <?php if ($colorImagePath !== ''): ?>
-                                            <img src="<?= sf_e($colorPreviewImage); ?>"
-                                                alt="<?= sf_e($color['color_name']); ?>" loading="lazy">
-                                            <?php else: ?>
-                                            <span class="variant-color-swatch" style="--variant-color: <?= sf_e(
-                                    $colorCode
-                                ); ?>" aria-hidden="true"></span>
-                                            <?php endif; ?>
-                                        </span>
-
-                                        <span class="variant-option-name">
-                                            <?= sf_e($color['color_name']); ?>
-                                        </span>
-
-                                        <?php if (
-                              (float)$color['price_adjustment'] !== 0.0
-                          ): ?>
-                                        <small class="variant-option-price">
-                                            <?= (float)$color['price_adjustment'] > 0
-                                  ? '+'
-                                  : ''; ?><?= sf_e(sf_money(
-                                      $color['price_adjustment']
-                                  )); ?>
-                                        </small>
-                                        <?php endif; ?>
-                                    </span>
-                                </label>
-                                <?php endforeach; ?>
-                            </div>
-                        </fieldset>
-                        <?php endif; ?>
-
-                        <?php if ($designs): ?>
-                        <fieldset class="variant-picker full">
-                            <legend>
-                                Design
-                                <small>Select a design to preview it</small>
-                            </legend>
-
-                            <div class="variant-options" role="radiogroup" aria-label="Choose product design">
-                                <?php foreach ($designs as $designIndex => $design): ?>
-                                <?php
-                      $designImagePath = trim(
-                          (string)($design['image_path'] ?? '')
-                      );
-
-                      $designPreviewImage = $designImagePath !== ''
-                          ? sf_media_path($designImagePath, $mainImage)
-                          : $mainImage;
-                      ?>
-
-                                <label class="variant-option">
-                                    <input type="radio" name="design_variant_id" value="<?= (int)$design['id']; ?>"
-                                        data-variant-input data-variant-kind="design" data-variant-preview="<?= sf_e(
-                              $designPreviewImage
-                          ); ?>" data-variant-label="<?= sf_e(
-                              $design['design_name']
-                          ); ?>" <?= $designIndex === 0 ? 'required' : ''; ?>>
-
-                                    <span class="variant-option-card">
-                                        <span class="variant-option-check">✓</span>
-
-                                        <span class="variant-option-thumb">
-                                            <img src="<?= sf_e($designPreviewImage); ?>"
-                                                alt="<?= sf_e($design['design_name']); ?>" loading="lazy">
-                                        </span>
-
-                                        <span class="variant-option-name">
-                                            <?= sf_e($design['design_name']); ?>
-                                        </span>
-
-                                        <?php if (
-                              (float)$design['price_adjustment'] !== 0.0
-                          ): ?>
-                                        <small class="variant-option-price">
-                                            <?= (float)$design['price_adjustment'] > 0
-                                  ? '+'
-                                  : ''; ?><?= sf_e(sf_money(
-                                      $design['price_adjustment']
-                                  )); ?>
-                                        </small>
-                                        <?php endif; ?>
-                                    </span>
-                                </label>
-                                <?php endforeach; ?>
-                            </div>
-                        </fieldset>
-                        <?php endif; ?>
-
                         <div>
                             <label for="buyQuantity">Quantity</label>
                             <input id="buyQuantity" type="number" name="quantity"
@@ -1691,6 +1691,14 @@ $error = trim((string)($_GET['error'] ?? ''));
 
                     <input type="hidden" name="product_id" value="<?= $productId; ?>">
 
+                    <?php if ($colors): ?>
+                    <input type="hidden" name="color_variant_id" value="" data-selected-variant-kind="colour">
+                    <?php endif; ?>
+
+                    <?php if ($designs): ?>
+                    <input type="hidden" name="design_variant_id" value="" data-selected-variant-kind="design">
+                    <?php endif; ?>
+
                     <div class="purchase-grid">
                         <div>
                             <label for="enquiryName">Name</label>
@@ -1708,115 +1716,6 @@ $error = trim((string)($_GET['error'] ?? ''));
                             <input id="enquiryEmail" type="email" name="email" maxlength="190">
                         </div>
 
-                        <?php if ($colors): ?>
-                        <fieldset class="variant-picker full">
-                            <legend>
-                                Colour
-                                <small>Select a colour</small>
-                            </legend>
-
-                            <div class="variant-options" role="radiogroup" aria-label="Choose enquiry colour">
-                                <?php foreach ($colors as $colorIndex => $color): ?>
-                                <?php
-                      $colorImagePath = trim(
-                          (string)($color['image_path'] ?? '')
-                      );
-
-                      $colorPreviewImage = $colorImagePath !== ''
-                          ? sf_media_path($colorImagePath, $mainImage)
-                          : $mainImage;
-
-                      $colorCode = trim(
-                          (string)($color['color_code'] ?? '')
-                      );
-
-                      if (!preg_match(
-                          '/^#?[0-9a-f]{3,8}$/i',
-                          $colorCode
-                      )) {
-                          $colorCode = '#eadfd1';
-                      } elseif (!str_starts_with($colorCode, '#')) {
-                          $colorCode = '#' . $colorCode;
-                      }
-                      ?>
-
-                                <label class="variant-option">
-                                    <input type="radio" name="color_variant_id" value="<?= (int)$color['id']; ?>"
-                                        data-variant-input data-variant-kind="colour" data-variant-preview="<?= sf_e(
-                              $colorPreviewImage
-                          ); ?>" data-variant-label="<?= sf_e(
-                              $color['color_name']
-                          ); ?>" <?= $colorIndex === 0 ? 'required' : ''; ?>>
-
-                                    <span class="variant-option-card">
-                                        <span class="variant-option-check">✓</span>
-
-                                        <span class="variant-option-thumb">
-                                            <?php if ($colorImagePath !== ''): ?>
-                                            <img src="<?= sf_e($colorPreviewImage); ?>"
-                                                alt="<?= sf_e($color['color_name']); ?>" loading="lazy">
-                                            <?php else: ?>
-                                            <span class="variant-color-swatch" style="--variant-color: <?= sf_e(
-                                    $colorCode
-                                ); ?>" aria-hidden="true"></span>
-                                            <?php endif; ?>
-                                        </span>
-
-                                        <span class="variant-option-name">
-                                            <?= sf_e($color['color_name']); ?>
-                                        </span>
-                                    </span>
-                                </label>
-                                <?php endforeach; ?>
-                            </div>
-                        </fieldset>
-                        <?php endif; ?>
-
-                        <?php if ($designs): ?>
-                        <fieldset class="variant-picker full">
-                            <legend>
-                                Design
-                                <small>Select a design</small>
-                            </legend>
-
-                            <div class="variant-options" role="radiogroup" aria-label="Choose enquiry design">
-                                <?php foreach ($designs as $designIndex => $design): ?>
-                                <?php
-                      $designImagePath = trim(
-                          (string)($design['image_path'] ?? '')
-                      );
-
-                      $designPreviewImage = $designImagePath !== ''
-                          ? sf_media_path($designImagePath, $mainImage)
-                          : $mainImage;
-                      ?>
-
-                                <label class="variant-option">
-                                    <input type="radio" name="design_variant_id" value="<?= (int)$design['id']; ?>"
-                                        data-variant-input data-variant-kind="design" data-variant-preview="<?= sf_e(
-                              $designPreviewImage
-                          ); ?>" data-variant-label="<?= sf_e(
-                              $design['design_name']
-                          ); ?>" <?= $designIndex === 0 ? 'required' : ''; ?>>
-
-                                    <span class="variant-option-card">
-                                        <span class="variant-option-check">✓</span>
-
-                                        <span class="variant-option-thumb">
-                                            <img src="<?= sf_e($designPreviewImage); ?>"
-                                                alt="<?= sf_e($design['design_name']); ?>" loading="lazy">
-                                        </span>
-
-                                        <span class="variant-option-name">
-                                            <?= sf_e($design['design_name']); ?>
-                                        </span>
-                                    </span>
-                                </label>
-                                <?php endforeach; ?>
-                            </div>
-                        </fieldset>
-                        <?php endif; ?>
-
                         <div>
                             <label for="enquiryQuantity">Required Quantity</label>
                             <input id="enquiryQuantity" type="number" name="quantity"
@@ -1833,7 +1732,7 @@ $error = trim((string)($_GET['error'] ?? ''));
                     </div>
 
                     <button class="submit-btn" type="submit" data-enquiry-submit>
-                        Submit Product Enquiry
+                        ENQUIRE NOW
                     </button>
                 </form>
                 <?php endif; ?>
@@ -1860,42 +1759,69 @@ document.querySelectorAll('[data-gallery-image]').forEach(image => {
     });
 });
 
-document.querySelectorAll('[data-variant-input]').forEach(input => {
-    input.addEventListener('change', () => {
-        if (!input.checked) {
-            return;
+const productVariantChoices = Array.from(
+    document.querySelectorAll('[data-product-variant-choice]')
+);
+
+function syncSelectedVariant(kind) {
+    const selected = productVariantChoices.find(choice =>
+        choice.dataset.variantKind === kind && choice.checked
+    );
+
+    document.querySelectorAll('[data-selected-variant-kind]').forEach(hidden => {
+        if (hidden.dataset.selectedVariantKind === kind) {
+            hidden.value = selected ? selected.value : '';
+        }
+    });
+}
+
+function showVariantPreview(preferredChoice = null) {
+    const main = document.getElementById('mainProductImage');
+
+    if (!main) {
+        return;
+    }
+
+    const selected = preferredChoice?.checked ?
+        preferredChoice :
+        productVariantChoices.find(choice => choice.checked);
+
+    document.querySelectorAll('[data-gallery-image]').forEach(item => {
+        item.classList.remove('active');
+    });
+
+    if (selected && selected.dataset.variantPreview) {
+        main.src = selected.dataset.variantPreview;
+        main.alt = selected.dataset.variantLabel ?
+            `${main.dataset.defaultAlt || 'Product'} - ${selected.dataset.variantLabel}` :
+            (main.dataset.defaultAlt || 'Product');
+        return;
+    }
+
+    main.src = main.dataset.defaultSrc || main.src;
+    main.alt = main.dataset.defaultAlt || 'Product';
+
+    const firstGalleryImage = document.querySelector('[data-gallery-image]');
+    firstGalleryImage?.classList.add('active');
+}
+
+productVariantChoices.forEach(choice => {
+    choice.addEventListener('change', () => {
+        const kind = choice.dataset.variantKind || '';
+
+        if (choice.checked) {
+            productVariantChoices.forEach(otherChoice => {
+                if (
+                    otherChoice !== choice &&
+                    otherChoice.dataset.variantKind === kind
+                ) {
+                    otherChoice.checked = false;
+                }
+            });
         }
 
-        const main = document.getElementById('mainProductImage');
-        const preview = input.dataset.variantPreview || '';
-        const label = input.dataset.variantLabel || '';
-        const kind = input.dataset.variantKind || 'variant';
-
-        /*
-         * Keep the same colour/design selected in both Buy and Enquiry forms.
-         * Radio groups remain separate because each group belongs to its own form.
-         */
-        document.querySelectorAll(
-            `[data-variant-input][data-variant-kind="${CSS.escape(kind)}"]`
-        ).forEach(relatedInput => {
-            if (
-                relatedInput !== input &&
-                relatedInput.value === input.value
-            ) {
-                relatedInput.checked = true;
-            }
-        });
-
-        document.querySelectorAll('[data-gallery-image]').forEach(item => {
-            item.classList.remove('active');
-        });
-
-        if (main && preview) {
-            main.src = preview;
-            main.alt = label ?
-                `${main.dataset.defaultAlt || 'Product'} - ${label}` :
-                (main.dataset.defaultAlt || 'Product');
-        }
+        syncSelectedVariant(kind);
+        showVariantPreview(choice);
     });
 });
 
@@ -1977,7 +1903,7 @@ document.querySelectorAll('[data-variant-input]').forEach(input => {
         }
 
         const originalText =
-            button?.textContent || 'Submit Product Enquiry';
+            button?.textContent || 'ENQUIRE NOW';
 
         if (button) {
             button.disabled = true;
@@ -2113,4 +2039,4 @@ document.querySelectorAll('[data-variant-input]').forEach(input => {
 })();
 </script>
 
-<?php require __DIR__ . '/includes/storefront-footer.php'; ?>
+<?php require __DIR__ . '/includes/storefront-footer.php'; 

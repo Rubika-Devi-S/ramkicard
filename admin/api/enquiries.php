@@ -15,6 +15,7 @@ function enquiry_columns(PDO $pdo): string
         'customer_phone',
         'source',
         'status',
+        'subject',
         'message',
         'admin_notes',
         'created_at',
@@ -37,6 +38,52 @@ function enquiry_columns(PDO $pdo): string
     }
 
     return implode(', ', $columns);
+}
+
+function enquiry_items_map(PDO $pdo, array $enquiryIds): array
+{
+    $enquiryIds = array_values(array_unique(array_filter(array_map(
+        static fn ($id): int => (int)$id,
+        $enquiryIds
+    ))));
+
+    if (!$enquiryIds) {
+        return [];
+    }
+
+    $placeholders = implode(
+        ', ',
+        array_fill(0, count($enquiryIds), '?')
+    );
+
+    $stmt = $pdo->prepare(
+        "SELECT
+            id,
+            enquiry_id,
+            product_id,
+            product_name_snapshot,
+            sku_snapshot,
+            thumbnail_snapshot,
+            selected_color_name,
+            selected_design_name,
+            requested_quantity,
+            unit_price_snapshot,
+            line_total_estimate,
+            customer_item_notes
+         FROM enquiry_items
+         WHERE enquiry_id IN ({$placeholders})
+         ORDER BY enquiry_id, id"
+    );
+
+    $stmt->execute($enquiryIds);
+
+    $map = [];
+
+    foreach ($stmt->fetchAll() as $item) {
+        $map[(int)$item['enquiry_id']][] = $item;
+    }
+
+    return $map;
 }
 
 try {
@@ -71,8 +118,14 @@ try {
         $stmt->execute($params);
 
         $rows = $stmt->fetchAll();
+        $itemsByEnquiry = enquiry_items_map(
+            $pdo,
+            array_column($rows, 'id')
+        );
 
         foreach ($rows as &$row) {
+            $row['items'] = $itemsByEnquiry[(int)$row['id']] ?? [];
+
             if (!empty($row['event_date'])) {
                 $row['event_date'] = date(
                     'd-m-Y',
@@ -108,6 +161,9 @@ try {
         if (!$row) {
             throw new RuntimeException('Enquiry not found.');
         }
+
+        $itemsByEnquiry = enquiry_items_map($pdo, [(int)$row['id']]);
+        $row['items'] = $itemsByEnquiry[(int)$row['id']] ?? [];
 
         $row['created_at'] = date(
             'd-m-Y h:i A',
@@ -176,6 +232,64 @@ try {
         );
 
         json_response(true, 'Enquiry updated successfully.');
+    }
+
+    if ($action === 'delete') {
+        require_permission($pdo, 'enquiries', 'can_delete');
+
+        $id = (int)request_value('id');
+
+        if ($id <= 0) {
+            throw new RuntimeException('Invalid enquiry.');
+        }
+
+        $pdo->beginTransaction();
+
+        try {
+            $stmt = $pdo->prepare(
+                "SELECT enquiry_number
+                 FROM enquiries
+                 WHERE id = :id
+                 LIMIT 1
+                 FOR UPDATE"
+            );
+            $stmt->execute(['id' => $id]);
+
+            $enquiryNumber = trim((string)$stmt->fetchColumn());
+
+            if ($enquiryNumber === '') {
+                throw new RuntimeException('Enquiry not found.');
+            }
+
+            activity_log(
+                $pdo,
+                'delete',
+                'Enquiries',
+                'enquiry',
+                $id,
+                "Deleted enquiry {$enquiryNumber}."
+            );
+
+            $stmt = $pdo->prepare(
+                "DELETE FROM enquiries
+                 WHERE id = :id"
+            );
+            $stmt->execute(['id' => $id]);
+
+            if ($stmt->rowCount() !== 1) {
+                throw new RuntimeException('Unable to delete the enquiry.');
+            }
+
+            $pdo->commit();
+        } catch (Throwable $e) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+
+            throw $e;
+        }
+
+        json_response(true, 'Enquiry deleted successfully.');
     }
 
     throw new RuntimeException('Invalid action.');

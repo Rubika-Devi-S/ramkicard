@@ -106,6 +106,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         );
     }
 
+    $formAction = trim((string)($_POST['form_action'] ?? 'update'));
     $enquiryId = max(0, (int)($_POST['id'] ?? 0));
     $newStatus = trim((string)($_POST['status'] ?? ''));
     $adminNotes = trim((string)($_POST['admin_notes'] ?? ''));
@@ -114,6 +115,81 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         enquiry_page_redirect(
             'danger',
             'Invalid enquiry.',
+            $currentStatusFilter
+        );
+    }
+
+    if ($formAction === 'delete') {
+        try {
+            $pdo->beginTransaction();
+
+            $select = $pdo->prepare(
+                "SELECT enquiry_number
+                 FROM enquiries
+                 WHERE id = :id
+                 LIMIT 1
+                 FOR UPDATE"
+            );
+
+            $select->execute(['id' => $enquiryId]);
+            $enquiryNumber = trim((string)$select->fetchColumn());
+
+            if ($enquiryNumber === '') {
+                throw new RuntimeException('Enquiry not found.');
+            }
+
+            if (function_exists('activity_log')) {
+                activity_log(
+                    $pdo,
+                    'delete',
+                    'Enquiries',
+                    'enquiry',
+                    $enquiryId,
+                    'Deleted enquiry ' . $enquiryNumber . '.'
+                );
+            }
+
+            $delete = $pdo->prepare(
+                "DELETE FROM enquiries
+                 WHERE id = :id"
+            );
+            $delete->execute(['id' => $enquiryId]);
+
+            if ($delete->rowCount() !== 1) {
+                throw new RuntimeException('Unable to delete the enquiry.');
+            }
+
+            $pdo->commit();
+
+            enquiry_page_redirect(
+                'success',
+                'Enquiry ' . $enquiryNumber . ' deleted successfully.',
+                $currentStatusFilter
+            );
+        } catch (Throwable $exception) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+
+            error_log(
+                'Admin enquiry delete failed: '
+                . $exception->getMessage()
+            );
+
+            enquiry_page_redirect(
+                'danger',
+                $exception instanceof RuntimeException
+                    ? $exception->getMessage()
+                    : 'Unable to delete the enquiry.',
+                $currentStatusFilter
+            );
+        }
+    }
+
+    if ($formAction !== 'update') {
+        enquiry_page_redirect(
+            'danger',
+            'Invalid enquiry action.',
             $currentStatusFilter
         );
     }
@@ -264,6 +340,57 @@ $stmt = $pdo->prepare($sql);
 $stmt->execute($params);
 $enquiries = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+/*
+|--------------------------------------------------------------------------
+| Load the product details saved with website enquiries
+|--------------------------------------------------------------------------
+| Customer/contact data is stored in enquiries. Product, variant, quantity
+| and price snapshots are stored in enquiry_items so the admin can see the
+| exact selection that was submitted from the storefront.
+*/
+
+$enquiryItemsByEnquiry = [];
+
+if ($enquiries) {
+    $enquiryIds = array_values(array_filter(array_map(
+        static fn (array $row): int => (int)($row['id'] ?? 0),
+        $enquiries
+    )));
+
+    if ($enquiryIds) {
+        $placeholders = implode(
+            ', ',
+            array_fill(0, count($enquiryIds), '?')
+        );
+
+        $itemStmt = $pdo->prepare(
+            "SELECT
+                id,
+                enquiry_id,
+                product_id,
+                product_name_snapshot,
+                sku_snapshot,
+                thumbnail_snapshot,
+                selected_color_name,
+                selected_design_name,
+                requested_quantity,
+                unit_price_snapshot,
+                line_total_estimate,
+                customer_item_notes
+             FROM enquiry_items
+             WHERE enquiry_id IN ({$placeholders})
+             ORDER BY enquiry_id, id"
+        );
+
+        $itemStmt->execute($enquiryIds);
+
+        foreach ($itemStmt->fetchAll(PDO::FETCH_ASSOC) as $item) {
+            $itemEnquiryId = (int)$item['enquiry_id'];
+            $enquiryItemsByEnquiry[$itemEnquiryId][] = $item;
+        }
+    }
+}
+
 $flashType = trim((string)($_GET['flash_type'] ?? ''));
 $flashMessage = trim((string)($_GET['flash_message'] ?? ''));
 
@@ -271,36 +398,49 @@ require __DIR__ . '/includes/header.php';
 ?>
 
 <?php if ($flashMessage !== ''): ?>
-    <div
-        class="alert alert-<?= e(
-            in_array(
-                $flashType,
-                ['success', 'danger', 'warning', 'info'],
-                true
-            )
-                ? $flashType
-                : 'info'
-        ); ?> alert-dismissible fade show"
-        role="alert"
-    >
-        <?= e($flashMessage); ?>
+<?php
+    $toastType = in_array(
+        $flashType,
+        ['success', 'danger', 'warning', 'info'],
+        true
+    ) ? $flashType : 'info';
 
-        <button
-            type="button"
-            class="btn-close"
-            data-bs-dismiss="alert"
-            aria-label="Close"
-        ></button>
+    $toastClass = match ($toastType) {
+        'success' => 'text-bg-success',
+        'danger' => 'text-bg-danger',
+        'warning' => 'text-bg-warning',
+        default => 'text-bg-info',
+    };
+
+    $toastIcon = match ($toastType) {
+        'success' => 'fa-circle-check',
+        'danger' => 'fa-circle-exclamation',
+        'warning' => 'fa-triangle-exclamation',
+        default => 'fa-circle-info',
+    };
+    ?>
+
+<div class="toast-container position-fixed end-0 p-3" style="top:70px;z-index:2000;">
+    <div id="enquiryActionToast" class="toast align-items-center border-0 <?= e($toastClass); ?>" role="alert"
+        aria-live="assertive" aria-atomic="true" data-bs-autohide="true" data-bs-delay="4000">
+        <div class="d-flex align-items-center">
+            <div class="toast-body d-flex align-items-center gap-2">
+                <i class="fa-solid <?= e($toastIcon); ?>"></i>
+                <span><?= e($flashMessage); ?></span>
+            </div>
+
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"
+                aria-label="Close"></button>
+        </div>
     </div>
+</div>
 <?php endif; ?>
 
 <div class="ramki-card p-3">
 
-    <div
-        class="d-flex flex-column flex-md-row
+    <div class="d-flex flex-column flex-md-row
                justify-content-between align-items-md-center
-               gap-3 mb-3"
-    >
+               gap-3 mb-3">
         <div>
             <h2 class="h5 mb-1">
                 Website Enquiries
@@ -314,25 +454,17 @@ require __DIR__ . '/includes/header.php';
         </div>
 
         <form method="GET" action="enquiries.php">
-            <select
-                class="form-select"
-                id="enquiryStatusFilter"
-                name="status"
-                onchange="this.form.submit()"
-            >
+            <select class="form-select" id="enquiryStatusFilter" name="status" onchange="this.form.submit()">
                 <option value="">
                     All Statuses
                 </option>
 
                 <?php foreach ($allowedStatuses as $status): ?>
-                    <option
-                        value="<?= e($status); ?>"
-                        <?= $currentStatusFilter === $status
+                <option value="<?= e($status); ?>" <?= $currentStatusFilter === $status
                             ? 'selected'
-                            : ''; ?>
-                    >
-                        <?= e(enquiry_page_status_label($status)); ?>
-                    </option>
+                            : ''; ?>>
+                    <?= e(enquiry_page_status_label($status)); ?>
+                </option>
                 <?php endforeach; ?>
             </select>
         </form>
@@ -340,10 +472,7 @@ require __DIR__ . '/includes/header.php';
 
     <div class="table-responsive">
 
-        <table
-            class="table table-hover align-middle w-100"
-            id="enquiriesTable"
-        >
+        <table class="table table-hover align-middle w-100" id="enquiriesTable">
             <thead>
                 <tr>
                     <th>#</th>
@@ -362,35 +491,45 @@ require __DIR__ . '/includes/header.php';
 
                 <?php if (!$enquiries): ?>
 
-                    <tr>
-                        <td colspan="9" class="text-center py-5">
-                            <i
-                                class="fa-regular fa-folder-open
-                                       fs-2 text-muted d-block mb-2"
-                            ></i>
+                <tr>
+                    <td colspan="9" class="text-center py-5">
+                        <i class="fa-regular fa-folder-open
+                                       fs-2 text-muted d-block mb-2"></i>
 
-                            <strong>No enquiries found.</strong>
+                        <strong>No enquiries found.</strong>
 
-                            <div class="small text-muted mt-1">
-                                Current database:
-                                <?= e((string)$pdo->query(
+                        <div class="small text-muted mt-1">
+                            Current database:
+                            <?= e((string)$pdo->query(
                                     'SELECT DATABASE()'
                                 )->fetchColumn()); ?>
-                            </div>
-                        </td>
-                    </tr>
+                        </div>
+                    </td>
+                </tr>
 
                 <?php else: ?>
 
-                    <?php foreach ($enquiries as $index => $enquiry): ?>
+                <?php foreach ($enquiries as $index => $enquiry): ?>
 
-                        <?php
+                <?php
                         $message = (string)($enquiry['message'] ?? '');
+                        $enquiryItems = $enquiryItemsByEnquiry[
+                            (int)$enquiry['id']
+                        ] ?? [];
 
                         $event = enquiry_page_extract(
                             $message,
                             'Event'
                         );
+
+                        if (
+                            (string)$enquiry['source'] === 'product'
+                            && !empty($enquiryItems[0]['product_name_snapshot'])
+                        ) {
+                            $event = (string)$enquiryItems[0][
+                                'product_name_snapshot'
+                            ];
+                        }
 
                         if ($event === '') {
                             $event = preg_replace(
@@ -470,119 +609,128 @@ require __DIR__ . '/includes/header.php';
                                     $enquiry['assigned_admin_name']
                                     ?? ''
                                 ),
+                            'items' => $enquiryItems,
                             'whatsapp_url' => $whatsappUrl,
                         ];
                         ?>
 
-                        <tr>
-                            <td><?= $index + 1; ?></td>
+                <tr>
+                    <td><?= $index + 1; ?></td>
 
-                            <td>
-                                <strong>
-                                    <?= e($enquiry['enquiry_number']); ?>
-                                </strong>
+                    <td>
+                        <strong>
+                            <?= e($enquiry['enquiry_number']); ?>
+                        </strong>
 
-                                <div class="small text-muted">
-                                    <?= e(ucfirst(
+                        <div class="small text-muted">
+                            <?= e(ucfirst(
                                         (string)$enquiry['source']
                                     )); ?>
-                                </div>
-                            </td>
+                        </div>
+                    </td>
 
-                            <td>
-                                <strong>
-                                    <?= e($enquiry['customer_name']); ?>
-                                </strong>
+                    <td>
+                        <strong>
+                            <?= e($enquiry['customer_name']); ?>
+                        </strong>
 
-                                <div class="small">
-                                    <a
-                                        href="tel:<?= e($phoneDigits); ?>"
-                                    >
-                                        <?= e(
+                        <div class="small">
+                            <a href="tel:<?= e($phoneDigits); ?>">
+                                <?= e(
                                             $enquiry['customer_phone']
                                         ); ?>
-                                    </a>
-                                </div>
+                            </a>
+                        </div>
 
-                                <?php if (
+                        <?php if (
                                     !empty($enquiry['customer_email'])
                                 ): ?>
-                                    <div class="small text-muted">
-                                        <?= e(
+                        <div class="small text-muted">
+                            <?= e(
                                             $enquiry['customer_email']
                                         ); ?>
-                                    </div>
-                                <?php endif; ?>
-                            </td>
+                        </div>
+                        <?php endif; ?>
+                    </td>
 
-                            <td><?= e($event); ?></td>
+                    <td><?= e($event); ?></td>
 
-                            <td>
-                                <?= e(
+                    <td>
+                        <?= e(
                                     $eventDate !== ''
                                         ? $eventDate
                                         : '-'
                                 ); ?>
-                            </td>
+                    </td>
 
-                            <td>
-                                <?= e(
+                    <td>
+                        <?= e(
                                     $location !== ''
                                         ? $location
                                         : '-'
                                 ); ?>
-                            </td>
+                    </td>
 
-                            <td>
-                                <span
-                                    class="badge <?= e(
+                    <td>
+                        <span class="badge <?= e(
                                         enquiry_page_status_class(
                                             (string)$enquiry['status']
                                         )
-                                    ); ?>"
-                                >
-                                    <?= e(enquiry_page_status_label(
+                                    ); ?>">
+                            <?= e(enquiry_page_status_label(
                                         (string)$enquiry['status']
                                     )); ?>
-                                </span>
-                            </td>
+                        </span>
+                    </td>
 
-                            <td>
-                                <?= e(date(
+                    <td>
+                        <?= e(date(
                                     'd-m-Y',
                                     strtotime(
                                         (string)$enquiry['created_at']
                                     )
                                 )); ?>
 
-                                <div class="small text-muted">
-                                    <?= e(date(
+                        <div class="small text-muted">
+                            <?= e(date(
                                         'h:i A',
                                         strtotime(
                                             (string)$enquiry['created_at']
                                         )
                                     )); ?>
-                                </div>
-                            </td>
+                        </div>
+                    </td>
 
-                            <td>
-                                <button
-                                    type="button"
-                                    class="btn btn-sm btn-ramki
-                                           js-view-enquiry"
-                                    data-enquiry="<?= e(json_encode(
-                                        $modalPayload,
-                                        JSON_UNESCAPED_SLASHES
-                                        | JSON_UNESCAPED_UNICODE
-                                    )); ?>"
-                                >
-                                    <i class="fa-solid fa-eye"></i>
-                                    View
+                    <td>
+                        <div class="d-flex align-items-center gap-2">
+                            <button type="button" class="btn btn-sm btn-ramki
+                                               js-view-enquiry" data-enquiry="<?= e(json_encode(
+                                            $modalPayload,
+                                            JSON_UNESCAPED_SLASHES
+                                            | JSON_UNESCAPED_UNICODE
+                                        )); ?>">
+                                <i class="fa-solid fa-eye"></i>
+                                View
+                            </button>
+
+                            <form method="POST" action="enquiries.php?status=<?= e(
+                                            $currentStatusFilter
+                                        ); ?>" class="d-inline"
+                                onsubmit="return confirm('Delete this enquiry permanently?');">
+                                <input type="hidden" name="csrf_token" value="<?= e(csrf_token()); ?>">
+                                <input type="hidden" name="form_action" value="delete">
+                                <input type="hidden" name="id" value="<?= (int)$enquiry['id']; ?>">
+
+                                <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete enquiry"
+                                    aria-label="Delete enquiry">
+                                    <i class="fa-solid fa-trash"></i>
                                 </button>
-                            </td>
-                        </tr>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
 
-                    <?php endforeach; ?>
+                <?php endforeach; ?>
 
                 <?php endif; ?>
 
@@ -591,123 +739,74 @@ require __DIR__ . '/includes/header.php';
     </div>
 </div>
 
-<div
-    class="modal fade"
-    id="enquiryModal"
-    tabindex="-1"
-    aria-hidden="true"
->
+<div class="modal fade" id="enquiryModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered">
 
-        <form
-            class="modal-content"
-            id="enquiryForm"
-            method="POST"
-            action="enquiries.php?status=<?= e(
+        <form class="modal-content" id="enquiryForm" method="POST" action="enquiries.php?status=<?= e(
                 $currentStatusFilter
-            ); ?>"
-        >
+            ); ?>">
             <div class="modal-header">
 
                 <h5 class="modal-title">
                     Enquiry Details
                 </h5>
 
-                <button
-                    type="button"
-                    class="btn-close"
-                    data-bs-dismiss="modal"
-                    aria-label="Close"
-                ></button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
 
             <div class="modal-body">
 
-                <input
-                    type="hidden"
-                    name="csrf_token"
-                    value="<?= e(csrf_token()); ?>"
-                >
+                <input type="hidden" name="csrf_token" value="<?= e(csrf_token()); ?>">
 
-                <input
-                    type="hidden"
-                    name="id"
-                    id="modalEnquiryId"
-                >
+                <input type="hidden" name="form_action" value="update">
 
-                <div
-                    id="enquiryDetails"
-                    class="mb-4"
-                ></div>
+                <input type="hidden" name="id" id="modalEnquiryId">
+
+                <div id="enquiryDetails" class="mb-4"></div>
 
                 <div class="row g-3">
 
                     <div class="col-md-5">
 
-                        <label
-                            class="form-label"
-                            for="modalEnquiryStatus"
-                        >
+                        <label class="form-label" for="modalEnquiryStatus">
                             Status
                         </label>
 
-                        <select
-                            class="form-select"
-                            name="status"
-                            id="modalEnquiryStatus"
-                            required
-                        >
+                        <select class="form-select" name="status" id="modalEnquiryStatus" required>
                             <?php foreach (
                                 $allowedStatuses as $status
                             ): ?>
-                                <option value="<?= e($status); ?>">
-                                    <?= e(
+                            <option value="<?= e($status); ?>">
+                                <?= e(
                                         enquiry_page_status_label(
                                             $status
                                         )
                                     ); ?>
-                                </option>
+                            </option>
                             <?php endforeach; ?>
                         </select>
                     </div>
 
                     <div class="col-md-7">
 
-                        <label
-                            class="form-label"
-                            for="modalAdminNotes"
-                        >
+                        <label class="form-label" for="modalAdminNotes">
                             Admin Notes
                         </label>
 
-                        <textarea
-                            class="form-control"
-                            rows="4"
-                            name="admin_notes"
-                            id="modalAdminNotes"
-                            maxlength="5000"
-                        ></textarea>
+                        <textarea class="form-control" rows="4" name="admin_notes" id="modalAdminNotes"
+                            maxlength="5000"></textarea>
                     </div>
                 </div>
             </div>
 
             <div class="modal-footer">
 
-                <a
-                    href="#"
-                    class="btn btn-success"
-                    id="enquiryWhatsApp"
-                    target="_blank"
-                    rel="noopener"
-                >
+                <a href="#" class="btn btn-success" id="enquiryWhatsApp" target="_blank" rel="noopener">
                     <i class="fa-brands fa-whatsapp me-2"></i>
                     WhatsApp
                 </a>
 
-                <button
-                    class="btn btn-ramki"
-                    type="submit"
-                >
+                <button class="btn btn-ramki" type="submit">
                     Update Enquiry
                 </button>
             </div>
@@ -737,6 +836,20 @@ require __DIR__ . '/includes/header.php';
     const whatsappLink =
         document.getElementById('enquiryWhatsApp');
 
+    const actionToast =
+        document.getElementById('enquiryActionToast');
+
+    if (actionToast) {
+        window.addEventListener('load', () => {
+            if (window.bootstrap?.Toast) {
+                bootstrap.Toast.getOrCreateInstance(actionToast).show();
+                return;
+            }
+
+            actionToast.classList.add('show');
+        });
+    }
+
     function escapeHtml(value) {
         return String(value ?? '')
             .replaceAll('&', '&amp;')
@@ -744,6 +857,32 @@ require __DIR__ . '/includes/header.php';
             .replaceAll('>', '&gt;')
             .replaceAll('"', '&quot;')
             .replaceAll("'", '&#039;');
+    }
+
+    function formatMoney(value) {
+        if (value === null || value === undefined || value === '') {
+            return '-';
+        }
+
+        const amount = Number(value);
+
+        return Number.isFinite(amount) ?
+            `₹${amount.toFixed(2)}` :
+            '-';
+    }
+
+    function productThumbnailUrl(value) {
+        const path = String(value ?? '').trim();
+
+        if (path === '') {
+            return '';
+        }
+
+        if (/^(?:https?:)?\/\//i.test(path) || path.startsWith('/')) {
+            return path;
+        }
+
+        return `../${path.replace(/^\.?\//, '')}`;
     }
 
     document
@@ -770,6 +909,67 @@ require __DIR__ . '/includes/header.php';
 
                 whatsappLink.href =
                     enquiry.whatsapp_url || '#';
+
+                const enquiryItems = Array.isArray(enquiry.items) ?
+                    enquiry.items : [];
+
+                const productDetailsHtml = enquiryItems.length ?
+                    `
+                        <div class="col-12">
+                            <small class="text-muted d-block mb-2">
+                                Product Details
+                            </small>
+                            ${enquiryItems.map(item => `
+                                <div class="border rounded p-3 mb-2 bg-body-tertiary">
+                                    <div class="row g-2">
+                                        <div class="col-md-2">
+                                            ${item.thumbnail_snapshot
+                                                ? `<img
+                                                    src="${escapeHtml(productThumbnailUrl(item.thumbnail_snapshot))}"
+                                                    alt="${escapeHtml(item.product_name_snapshot || 'Product')}"
+                                                    class="img-thumbnail"
+                                                    loading="lazy"
+                                                    style="width:76px;height:76px;object-fit:cover;"
+                                                >`
+                                                : `<div
+                                                    class="border rounded d-flex align-items-center justify-content-center text-muted bg-white"
+                                                    style="width:76px;height:76px;"
+                                                    aria-label="No product image"
+                                                ><i class="fa-regular fa-image"></i></div>`
+                                            }
+                                        </div>
+                                        <div class="col-md-4">
+                                            <strong>${escapeHtml(item.product_name_snapshot || '-')}</strong>
+                                            <div class="small text-muted">
+                                                SKU: ${escapeHtml(item.sku_snapshot || '-')}
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <small class="text-muted d-block">Quantity</small>
+                                            <strong>${escapeHtml(item.requested_quantity || '-')}</strong>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <small class="text-muted d-block">Estimate</small>
+                                            <strong>${formatMoney(item.line_total_estimate)}</strong>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <small class="text-muted d-block">Colour</small>
+                                            ${escapeHtml(item.selected_color_name || '-')}
+                                        </div>
+                                        <div class="col-md-4">
+                                            <small class="text-muted d-block">Design</small>
+                                            ${escapeHtml(item.selected_design_name || '-')}
+                                        </div>
+                                        <div class="col-md-4">
+                                            <small class="text-muted d-block">Unit Price</small>
+                                            ${formatMoney(item.unit_price_snapshot)}
+                                        </div>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    ` :
+                    '';
 
                 details.innerHTML = `
                     <div class="row g-3">
@@ -808,18 +1008,20 @@ require __DIR__ . '/includes/header.php';
 
                         <div class="col-md-6">
                             <small class="text-muted d-block">
-                                Event
+                                Event / Product
                             </small>
                             <strong>
                                 ${escapeHtml(enquiry.event)}
                             </strong>
                             <div>
                                 ${escapeHtml(enquiry.event_date)}
-                            </div>
+                            </div>  
                             <div>
                                 ${escapeHtml(enquiry.location)}
                             </div>
                         </div>
+
+                        ${productDetailsHtml}
 
                         <div class="col-12">
                             <small class="text-muted d-block">
