@@ -5,50 +5,209 @@ require_once dirname(__DIR__) . '/includes/api-bootstrap.php';
 
 $action = request_action();
 
-$settingsMap = [
-    'company_name' => ['contact', 'string', 1],
-    'phone_number' => ['contact', 'string', 1],
-    'secondary_phone_number' => ['contact', 'string', 1],
-    'whatsapp_number' => ['contact', 'string', 1],
-    'email_address' => ['contact', 'string', 1],
-    'address' => ['contact', 'text', 1],
-    'purchase_mode' => ['commerce', 'string', 1],
-    'instagram_url' => ['social', 'string', 1],
-    'facebook_url' => ['social', 'string', 1],
-    'youtube_url' => ['social', 'string', 1],
-    'admin_notification_email' => ['mail', 'string', 0],
-];
+/**
+ * Settings managed by the Site Settings screen.
+ *
+ * Keeping this whitelist on the server prevents an administrator request from
+ * overwriting unrelated/private settings simply by posting another key.
+ */
+function site_settings_definition(): array
+{
+    return [
+        'company_name' => [
+            'group' => 'contact',
+            'type' => 'string',
+            'public' => 1,
+            'max' => 150,
+        ],
+        'admin_notification_email' => [
+            'group' => 'mail',
+            'type' => 'string',
+            'public' => 0,
+            'max' => 255,
+            'email' => true,
+        ],
+        'phone_number' => [
+            'group' => 'contact',
+            'type' => 'string',
+            'public' => 1,
+            'max' => 40,
+        ],
+        'secondary_phone_number' => [
+            'group' => 'contact',
+            'type' => 'string',
+            'public' => 1,
+            'max' => 40,
+        ],
+        'whatsapp_number' => [
+            'group' => 'contact',
+            'type' => 'string',
+            'public' => 1,
+            'max' => 40,
+        ],
+        'email_address' => [
+            'group' => 'contact',
+            'type' => 'string',
+            'public' => 1,
+            'max' => 255,
+            'email' => true,
+        ],
+        'purchase_mode' => [
+            'group' => 'commerce',
+            'type' => 'string',
+            'public' => 1,
+            'max' => 20,
+            'choices' => ['checkout', 'enquiry', 'both'],
+        ],
+        'address' => [
+            'group' => 'contact',
+            'type' => 'text',
+            'public' => 1,
+            'max' => 2000,
+        ],
+        'instagram_url' => [
+            'group' => 'social',
+            'type' => 'string',
+            'public' => 1,
+            'max' => 500,
+            'url' => true,
+        ],
+        'facebook_url' => [
+            'group' => 'social',
+            'type' => 'string',
+            'public' => 1,
+            'max' => 500,
+            'url' => true,
+        ],
+        'youtube_url' => [
+            'group' => 'social',
+            'type' => 'string',
+            'public' => 1,
+            'max' => 500,
+            'url' => true,
+        ],
+    ];
+}
+
+function site_settings_admin_id(): ?int
+{
+    $id = (int)(
+        $_SESSION['ramki_admin']['id']
+        ?? $_SESSION['ramki_admin']['user_id']
+        ?? 0
+    );
+
+    return $id > 0 ? $id : null;
+}
+
+function site_settings_length(string $value): int
+{
+    return function_exists('mb_strlen')
+        ? mb_strlen($value)
+        : strlen($value);
+}
+
+function site_settings_validate(
+    string $key,
+    string $value,
+    array $definition
+): string {
+    $value = trim($value);
+
+    if (site_settings_length($value) > (int)$definition['max']) {
+        throw new RuntimeException(
+            str_replace('_', ' ', ucfirst($key)) . ' is too long.'
+        );
+    }
+
+    if (
+        $value !== ''
+        && !empty($definition['email'])
+        && filter_var($value, FILTER_VALIDATE_EMAIL) === false
+    ) {
+        throw new RuntimeException(
+            'Please enter a valid ' . str_replace('_', ' ', $key) . '.'
+        );
+    }
+
+    if ($value !== '' && !empty($definition['url'])) {
+        $url = filter_var($value, FILTER_VALIDATE_URL);
+        $scheme = strtolower((string)parse_url($value, PHP_URL_SCHEME));
+
+        if ($url === false || !in_array($scheme, ['http', 'https'], true)) {
+            throw new RuntimeException(
+                'Please enter a complete http:// or https:// URL for '
+                . str_replace('_', ' ', $key) . '.'
+            );
+        }
+    }
+
+    if (
+        isset($definition['choices'])
+        && !in_array($value, $definition['choices'], true)
+    ) {
+        throw new RuntimeException('Invalid purchase mode selected.');
+    }
+
+    return $value;
+}
 
 try {
+    $definitions = site_settings_definition();
+
     if ($action === 'get') {
         require_permission($pdo, 'settings', 'can_view');
 
-        $keys = array_keys($settingsMap);
-        $placeholders = implode(
-            ',',
-            array_fill(0, count($keys), '?')
-        );
-
+        $keys = array_keys($definitions);
+        $placeholders = implode(', ', array_fill(0, count($keys), '?'));
         $stmt = $pdo->prepare(
             "SELECT setting_key, setting_value
              FROM site_settings
              WHERE setting_key IN ({$placeholders})"
         );
-
         $stmt->execute($keys);
 
-        $result = array_fill_keys($keys, '');
+        $settings = array_fill_keys($keys, '');
 
-        foreach ($stmt->fetchAll() as $row) {
-            $result[$row['setting_key']] =
-                $row['setting_value'];
+        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+            $settings[(string)$row['setting_key']] =
+                (string)($row['setting_value'] ?? '');
         }
 
-        json_response(true, '', $result);
+        // A safe default keeps the select usable on a fresh database.
+        if ($settings['purchase_mode'] === '') {
+            $settings['purchase_mode'] = 'enquiry';
+        }
+
+        json_response(true, '', $settings);
     }
 
     if ($action === 'save') {
         require_permission($pdo, 'settings', 'can_edit');
+
+        $values = [];
+
+        foreach ($definitions as $key => $definition) {
+            $values[$key] = site_settings_validate(
+                $key,
+                (string)request_value($key, ''),
+                $definition
+            );
+        }
+
+        if ($values['company_name'] === '') {
+            throw new RuntimeException('Company name is required.');
+        }
+
+        if ($values['phone_number'] === '') {
+            throw new RuntimeException('Phone number is required.');
+        }
+
+        if ($values['whatsapp_number'] === '') {
+            throw new RuntimeException('WhatsApp number is required.');
+        }
+
+        $pdo->beginTransaction();
 
         $stmt = $pdo->prepare(
             "INSERT INTO site_settings
@@ -77,32 +236,16 @@ try {
                 updated_by = VALUES(updated_by)"
         );
 
-        foreach (
-            $settingsMap
-            as $key => [$group, $type, $isPublic]
-        ) {
-            $value = trim(
-                (string)request_value($key, '')
-            );
+        $adminId = site_settings_admin_id();
 
-            if (
-                $key === 'purchase_mode' &&
-                !in_array(
-                    $value,
-                    ['checkout', 'enquiry', 'both'],
-                    true
-                )
-            ) {
-                $value = 'both';
-            }
-
+        foreach ($definitions as $key => $definition) {
             $stmt->execute([
-                'setting_group' => $group,
+                'setting_group' => $definition['group'],
                 'setting_key' => $key,
-                'setting_value' => $value,
-                'data_type' => $type,
-                'is_public' => $isPublic,
-                'updated_by' => current_admin_id(),
+                'setting_value' => $values[$key],
+                'data_type' => $definition['type'],
+                'is_public' => (int)$definition['public'],
+                'updated_by' => $adminId,
             ]);
         }
 
@@ -111,14 +254,24 @@ try {
             'update',
             'Site Settings',
             'site_settings',
-            null,
-            'Website settings updated.'
+            0,
+            'Global website and commerce settings updated.'
         );
 
-        json_response(true, 'Settings saved successfully.');
+        $pdo->commit();
+
+        json_response(
+            true,
+            'Site settings saved successfully.',
+            $values
+        );
     }
 
     throw new RuntimeException('Invalid action.');
 } catch (Throwable $e) {
+    if ($pdo->inTransaction()) {
+        $pdo->rollBack();
+    }
+
     json_response(false, $e->getMessage(), null, 422);
 }

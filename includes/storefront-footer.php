@@ -13,6 +13,7 @@ $footerProductsUrl =
 $footer = sf_section($pdo, 'footer');
 $companyName = sf_setting($pdo, 'company_name', 'Ramki Cards');
 $phoneNumber = sf_setting($pdo, 'phone_number', '96299 54411');
+$secondaryPhoneNumber = sf_setting($pdo, 'secondary_phone_number');
 $whatsappNumber = sf_setting($pdo, 'whatsapp_number', $phoneNumber);
 $emailAddress = sf_setting($pdo, 'email_address', 'info@ramkicards.com');
 $address = sf_setting($pdo, 'address', 'Chennai, Tamil Nadu, India');
@@ -86,6 +87,17 @@ if (!preg_match('#^https?://#i', $logoPath)) {
               <?= sf_e($phoneNumber); ?>
             </a>
           </li>
+          <?php if (
+              $secondaryPhoneNumber !== ''
+              && sf_phone_digits($secondaryPhoneNumber)
+                  !== sf_phone_digits($phoneNumber)
+          ): ?>
+          <li>
+            <a href="tel:<?= sf_e(sf_phone_digits($secondaryPhoneNumber)); ?>">
+              <?= sf_e($secondaryPhoneNumber); ?>
+            </a>
+          </li>
+          <?php endif; ?>
           <li>
             <a href="mailto:<?= sf_e($emailAddress); ?>">
               <?= sf_e($emailAddress); ?>
