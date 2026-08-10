@@ -98,10 +98,51 @@ $whatsappUrl = sf_whatsapp_url(
 require __DIR__ . '/includes/storefront-header.php';
 ?>
 
+<style>
+html.rk-motion-ready [data-rk-reveal] {
+    opacity: 0;
+    transform: translate3d(0, 26px, 0);
+    transition: opacity .66s cubic-bezier(.22, 1, .36, 1),
+                transform .66s cubic-bezier(.22, 1, .36, 1);
+    transition-delay: var(--rk-delay, 0ms);
+}
+html.rk-motion-ready [data-rk-reveal="left"] { transform: translate3d(-30px, 0, 0); }
+html.rk-motion-ready [data-rk-reveal="right"] { transform: translate3d(30px, 0, 0); }
+html.rk-motion-ready [data-rk-reveal="scale"] { transform: scale(.965); }
+html.rk-motion-ready [data-rk-reveal].rk-visible { opacity: 1; transform: none; }
+.about-value-card,
+.page-process-card,
+.about-voice-card {
+    transition: transform .24s ease, box-shadow .24s ease;
+}
+.about-value-card:hover,
+.page-process-card:hover,
+.about-voice-card:hover { transform: translateY(-5px); }
+@media (max-width: 767px) {
+    html.rk-motion-ready [data-rk-reveal="left"],
+    html.rk-motion-ready [data-rk-reveal="right"] { transform: translate3d(0, 22px, 0); }
+}
+@media (prefers-reduced-motion: reduce) {
+    html.rk-motion-ready [data-rk-reveal],
+    .about-value-card,
+    .page-process-card,
+    .about-voice-card {
+        opacity: 1;
+        transform: none;
+        transition: none;
+    }
+}
+</style>
+<script>
+if ('IntersectionObserver' in window && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    document.documentElement.classList.add('rk-motion-ready');
+}
+</script>
+
 <main class="store-inner-page about-page">
     <section class="page-hero page-hero-about">
         <div class="container page-hero-grid">
-            <div class="page-hero-copy">
+            <div class="page-hero-copy" data-rk-reveal="left">
                 <span class="page-eyebrow">Our Story</span>
                 <h1>Celebrating beginnings for <em><?= sf_e($experienceLabel); ?></em></h1>
                 <p class="page-lead"><?= sf_e($aboutLead); ?></p>
@@ -110,7 +151,8 @@ require __DIR__ . '/includes/storefront-header.php';
                     <a class="page-action page-action-outline" href="index.php#contact">Contact Us</a>
                 </div>
             </div>
-            <div class="about-hero-emblem" aria-label="<?= sf_e($experienceLabel); ?> of experience">
+            <div class="about-hero-emblem" data-rk-reveal="scale" style="--rk-delay: 90ms"
+                aria-label="<?= sf_e($experienceLabel); ?> of experience">
                 <strong><?= sf_e($experienceNumber); ?></strong>
                 <span>Years of<br>Trusted Excellence</span>
             </div>
@@ -119,14 +161,14 @@ require __DIR__ . '/includes/storefront-header.php';
 
     <section class="section about-story-section" aria-labelledby="storyHeading">
         <div class="container about-story-grid">
-            <div class="about-story-visual">
+            <div class="about-story-visual" data-rk-reveal="left">
                 <img src="<?= sf_e($heroImage); ?>" alt="<?= sf_e($companyName); ?> invitation craftsmanship" loading="eager">
                 <div class="about-experience-badge">
                     <strong><?= sf_e($experienceLabel); ?></strong>
                     <span>of trust & craft</span>
                 </div>
             </div>
-            <div class="about-story-copy">
+            <div class="about-story-copy" data-rk-reveal="right" style="--rk-delay: 70ms">
                 <div class="section-title page-section-title page-section-title-left">
                     <div class="decor-line"></div>
                     <span>The Ramki Cards journey</span>
@@ -148,24 +190,25 @@ require __DIR__ . '/includes/storefront-header.php';
 
     <section class="about-metrics-section" aria-label="Ramki Cards experience highlights">
         <div class="container about-metrics-grid">
-            <article><strong><?= sf_e($experienceNumber); ?>+</strong><span>Years of Experience</span></article>
-            <article><strong>Pan India</strong><span>Delivery Support</span></article>
-            <article><strong>தமிழ் + EN</strong><span>Tamil & English Designs</span></article>
-            <article><strong>Custom</strong><span>Design & Printing</span></article>
+            <article data-rk-reveal><strong><?= sf_e($experienceNumber); ?>+</strong><span>Years of Experience</span></article>
+            <article data-rk-reveal style="--rk-delay: 55ms"><strong>Pan India</strong><span>Delivery Support</span></article>
+            <article data-rk-reveal style="--rk-delay: 110ms"><strong>தமிழ் + EN</strong><span>Tamil & English Designs</span></article>
+            <article data-rk-reveal style="--rk-delay: 165ms"><strong>Custom</strong><span>Design & Printing</span></article>
         </div>
     </section>
 
     <section class="section page-section" aria-labelledby="whyHeading">
         <div class="container">
-            <div class="section-title page-section-title">
+            <div class="section-title page-section-title" data-rk-reveal>
                 <div class="decor-line"></div>
                 <span>Why families choose us</span>
                 <h2 id="whyHeading"><?= sf_e($whySection['section_title'] ?? 'Built on'); ?> <em><?= sf_e($whySection['section_subtitle'] ?? 'trust'); ?></em></h2>
                 <p>Experience matters most when it shows up in the little things.</p>
             </div>
             <div class="about-values-grid">
-                <?php foreach ($whyItems as $item): ?>
-                    <article class="about-value-card">
+                <?php foreach ($whyItems as $whyIndex => $item): ?>
+                    <article class="about-value-card" data-rk-reveal
+                        style="--rk-delay: <?= (int)(($whyIndex % 3) * 60); ?>ms">
                         <span class="about-value-icon" aria-hidden="true"><?= sf_e($item['icon_class'] ?: '✦'); ?></span>
                         <div>
                             <h3><?= sf_e($item['item_title'] ?? 'Ramki Cards'); ?></h3>
@@ -179,7 +222,7 @@ require __DIR__ . '/includes/storefront-header.php';
 
     <section class="section page-process-section about-process-section" aria-labelledby="aboutProcessHeading">
         <div class="container">
-            <div class="section-title page-section-title">
+            <div class="section-title page-section-title" data-rk-reveal>
                 <div class="decor-line"></div>
                 <span>Our way of working</span>
                 <h2 id="aboutProcessHeading">Personal from idea to <em>delivery</em></h2>
@@ -187,7 +230,8 @@ require __DIR__ . '/includes/storefront-header.php';
             </div>
             <div class="page-process-grid">
                 <?php foreach ($customSteps as $index => $step): ?>
-                    <article class="page-process-card">
+                    <article class="page-process-card" data-rk-reveal
+                        style="--rk-delay: <?= (int)(($index % 4) * 60); ?>ms">
                         <span class="page-process-number"><?= str_pad((string)($index + 1), 2, '0', STR_PAD_LEFT); ?></span>
                         <span class="page-process-icon" aria-hidden="true"><?= sf_e($step['icon_class'] ?: '✦'); ?></span>
                         <h3><?= sf_e($step['item_title'] ?? 'Step'); ?></h3>
@@ -200,14 +244,15 @@ require __DIR__ . '/includes/storefront-header.php';
 
     <section class="section about-voices-section" aria-labelledby="voicesHeading">
         <div class="container">
-            <div class="section-title page-section-title">
+            <div class="section-title page-section-title" data-rk-reveal>
                 <div class="decor-line"></div>
                 <span>Customer voices</span>
                 <h2 id="voicesHeading"><?= sf_e($testimonialSection['section_title'] ?? 'Stories from'); ?> <em><?= sf_e($testimonialSection['section_subtitle'] ?? 'our families'); ?></em></h2>
             </div>
             <div class="about-voices-grid">
-                <?php foreach (array_slice($testimonials, 0, 3) as $testimonial): ?>
-                    <blockquote class="about-voice-card">
+                <?php foreach (array_slice($testimonials, 0, 3) as $testimonialIndex => $testimonial): ?>
+                    <blockquote class="about-voice-card" data-rk-reveal
+                        style="--rk-delay: <?= (int)($testimonialIndex * 70); ?>ms">
                         <span class="about-quote-mark">“</span>
                         <p><?= sf_e($testimonial['item_content'] ?? 'A wonderful experience from design to delivery.'); ?></p>
                         <div class="about-voice-meta">
@@ -223,7 +268,7 @@ require __DIR__ . '/includes/storefront-header.php';
     </section>
 
     <section class="page-cta-section">
-        <div class="container page-cta-inner">
+        <div class="container page-cta-inner" data-rk-reveal="scale">
             <div>
                 <span>Your celebration, your way</span>
                 <h2>Let’s create something memorable.</h2>
@@ -236,5 +281,26 @@ require __DIR__ . '/includes/storefront-header.php';
         </div>
     </section>
 </main>
+
+<script>
+(() => {
+    'use strict';
+    const items = document.querySelectorAll('[data-rk-reveal]');
+    if (!document.documentElement.classList.contains('rk-motion-ready')) {
+        items.forEach(item => item.classList.add('rk-visible'));
+        return;
+    }
+
+    const observer = new IntersectionObserver(entries => {
+        entries.forEach(entry => {
+            if (!entry.isIntersecting) return;
+            entry.target.classList.add('rk-visible');
+            observer.unobserve(entry.target);
+        });
+    }, { rootMargin: '0px 0px -7% 0px', threshold: .08 });
+
+    items.forEach(item => observer.observe(item));
+})();
+</script>
 
 <?php require __DIR__ . '/includes/storefront-footer.php'; ?>

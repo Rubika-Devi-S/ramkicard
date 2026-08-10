@@ -62,59 +62,6 @@ if (!$topStripItems) {
     ];
 }
 
-$gallery = [];
-$galleryPaths = [];
-
-try {
-    $galleryStatement = $pdo->query(
-        "SELECT pi.image_path, COALESCE(NULLIF(pi.alt_text, ''), p.product_name) AS alt_text,
-                p.product_name, p.slug
-         FROM product_images pi
-         INNER JOIN products p ON p.id = pi.product_id
-         WHERE pi.status = 'active'
-           AND p.status = 'active'
-           AND p.deleted_at IS NULL
-         ORDER BY p.is_featured DESC, pi.sort_order ASC, pi.id DESC
-         LIMIT 16"
-    );
-
-    foreach ($galleryStatement->fetchAll(PDO::FETCH_ASSOC) as $image) {
-        $path = trim((string)($image['image_path'] ?? ''));
-        if ($path === '' || isset($galleryPaths[$path])) {
-            continue;
-        }
-        $galleryPaths[$path] = true;
-        $gallery[] = $image;
-    }
-
-    if (count($gallery) < 8) {
-        $thumbnailStatement = $pdo->query(
-            "SELECT thumbnail_path AS image_path, product_name AS alt_text, product_name, slug
-             FROM products
-             WHERE status = 'active'
-               AND deleted_at IS NULL
-               AND thumbnail_path <> ''
-             ORDER BY is_featured DESC, id DESC
-             LIMIT 16"
-        );
-
-        foreach ($thumbnailStatement->fetchAll(PDO::FETCH_ASSOC) as $image) {
-            $path = trim((string)($image['image_path'] ?? ''));
-            if ($path === '' || isset($galleryPaths[$path])) {
-                continue;
-            }
-            $galleryPaths[$path] = true;
-            $gallery[] = $image;
-            if (count($gallery) >= 16) {
-                break;
-            }
-        }
-    }
-} catch (Throwable $exception) {
-    // Keep the page usable if gallery tables are temporarily unavailable.
-    $gallery = [];
-}
-
 $pageTitle = 'Our Services | ' . $companyName;
 $whatsappUrl = sf_whatsapp_url(
     $whatsappNumber,
@@ -124,10 +71,125 @@ $whatsappUrl = sf_whatsapp_url(
 require __DIR__ . '/includes/storefront-header.php';
 ?>
 
+<script>
+document.documentElement.classList.add('ramki-motion-enabled');
+</script>
+
+<style>
+.service-gallery-section {
+    scroll-margin-top: 105px;
+}
+
+.ramki-motion-enabled .ramki-emerge {
+    opacity: 0;
+    transform: translate3d(0, 38px, 0);
+    filter: blur(5px);
+    transition:
+        opacity .82s cubic-bezier(.22, 1, .36, 1),
+        transform .82s cubic-bezier(.22, 1, .36, 1),
+        filter .7s ease;
+    transition-delay: var(--ramki-delay, 0ms);
+    will-change: opacity, transform, filter;
+}
+
+.ramki-motion-enabled .ramki-emerge-left {
+    transform: translate3d(-52px, 12px, 0);
+}
+
+.ramki-motion-enabled .ramki-emerge-right {
+    transform: translate3d(52px, 12px, 0);
+}
+
+.ramki-motion-enabled .ramki-emerge-scale {
+    transform: translate3d(0, 24px, 0) scale(.94);
+}
+
+.ramki-motion-enabled .ramki-emerge.is-visible {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+    filter: blur(0);
+}
+
+.service-detail-card,
+.page-process-card,
+.service-carousel-slide {
+    transition:
+        opacity .82s cubic-bezier(.22, 1, .36, 1),
+        transform .35s cubic-bezier(.22, 1, .36, 1),
+        filter .7s ease,
+        box-shadow .35s ease,
+        border-color .35s ease;
+}
+
+.ramki-motion-enabled .service-detail-card.is-visible:hover,
+.ramki-motion-enabled .page-process-card.is-visible:hover {
+    transform: translateY(-8px);
+}
+
+.service-detail-card:hover .service-detail-icon,
+.page-process-card:hover .page-process-icon {
+    animation: ramkiIconPulse .72s cubic-bezier(.22, 1, .36, 1);
+}
+
+.page-hero-note.is-visible {
+    animation: ramkiGentleFloat 5.8s ease-in-out 1s infinite;
+}
+
+.service-carousel-slide:hover .service-carousel-image img {
+    transform: scale(1.055);
+}
+
+.service-carousel-image img {
+    transition: transform .65s cubic-bezier(.22, 1, .36, 1);
+}
+
+@keyframes ramkiGentleFloat {
+    0%, 100% { translate: 0 0; }
+    50% { translate: 0 -8px; }
+}
+
+@keyframes ramkiIconPulse {
+    0% { transform: scale(1) rotate(0); }
+    45% { transform: scale(1.13) rotate(-5deg); }
+    100% { transform: scale(1) rotate(0); }
+}
+
+@media (max-width: 700px) {
+    .ramki-motion-enabled .ramki-emerge,
+    .ramki-motion-enabled .ramki-emerge-left,
+    .ramki-motion-enabled .ramki-emerge-right {
+        transform: translate3d(0, 25px, 0);
+        filter: blur(3px);
+    }
+
+    .ramki-motion-enabled .ramki-emerge.is-visible {
+        transform: translate3d(0, 0, 0);
+        filter: blur(0);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ramki-motion-enabled .ramki-emerge,
+    .ramki-motion-enabled .ramki-emerge.is-visible {
+        opacity: 1 !important;
+        transform: none !important;
+        filter: none !important;
+        transition: none !important;
+        animation: none !important;
+    }
+
+    .page-hero-note.is-visible,
+    .service-detail-card:hover .service-detail-icon,
+    .page-process-card:hover .page-process-icon {
+        animation: none !important;
+    }
+}
+</style>
+
 <main class="store-inner-page services-page">
     <section class="page-hero page-hero-services">
         <div class="container page-hero-grid">
-            <div class="page-hero-copy">
+            <div class="page-hero-copy ramki-emerge ramki-emerge-left">
                 <span class="page-eyebrow">What We Do</span>
                 <h1>Beautiful details for every <em>celebration.</em></h1>
                 <p class="page-lead">
@@ -135,10 +197,10 @@ require __DIR__ . '/includes/storefront-header.php';
                 </p>
                 <div class="page-actions">
                     <a class="page-action page-action-primary" href="products.php">Explore Collections <span>→</span></a>
-                    <a class="page-action page-action-outline" href="<?= sf_e($whatsappUrl); ?>" target="_blank" rel="noopener">Talk to Our Team</a>
+                    <a class="page-action page-action-outline" href="gallery.php">View Invitation Gallery</a>
                 </div>
             </div>
-            <div class="page-hero-note" aria-label="Ramki Cards service promise">
+            <div class="page-hero-note ramki-emerge ramki-emerge-right" style="--ramki-delay: 120ms" aria-label="Ramki Cards service promise">
                 <span class="page-hero-note-mark"><?= sf_e($experienceNumber); ?>+</span>
                 <strong>Years of trusted craftsmanship</strong>
                 <p>Traditional warmth, modern design and dependable delivery.</p>
@@ -148,7 +210,7 @@ require __DIR__ . '/includes/storefront-header.php';
 
     <section class="section page-section" aria-labelledby="servicesHeading">
         <div class="container">
-            <div class="section-title page-section-title">
+            <div class="section-title page-section-title ramki-emerge">
                 <div class="decor-line"></div>
                 <span>Made for your occasion</span>
                 <h2 id="servicesHeading"><?= sf_e($servicesSection['section_title'] ?? 'Our'); ?> <em><?= sf_e($servicesSection['section_subtitle'] ?? 'Services'); ?></em></h2>
@@ -156,13 +218,13 @@ require __DIR__ . '/includes/storefront-header.php';
             </div>
 
             <div class="service-detail-grid">
-                <?php foreach ($services as $service): ?>
+                <?php foreach ($services as $serviceIndex => $service): ?>
                     <?php
                     $serviceImage = trim((string)($service['image_path'] ?? ''));
                     $serviceLink = trim((string)($service['link_url'] ?? '')) ?: 'products.php';
                     $serviceLinkText = trim((string)($service['link_text'] ?? '')) ?: 'Explore options';
                     ?>
-                    <article class="service-detail-card">
+                    <article class="service-detail-card ramki-emerge" style="--ramki-delay: <?= min($serviceIndex, 5) * 85; ?>ms">
                         <?php if ($serviceImage !== ''): ?>
                             <a class="service-detail-image" href="<?= sf_e($serviceLink); ?>" aria-label="<?= sf_e($service['item_title'] ?? 'Service'); ?>">
                                 <img src="<?= sf_e(sf_media_path($serviceImage, 'banner.png')); ?>" alt="<?= sf_e($service['item_title'] ?? 'Ramki Cards service'); ?>" loading="lazy">
@@ -183,59 +245,16 @@ require __DIR__ . '/includes/storefront-header.php';
         </div>
     </section>
 
-    <section class="section service-gallery-section" aria-labelledby="galleryHeading">
-        <div class="container">
-            <div class="section-title page-section-title page-section-title-left">
-                <div class="decor-line"></div>
-                <span>From our collection</span>
-                <h2 id="galleryHeading">A closer look at <em>our work</em></h2>
-                <p>Swipe on mobile or use the arrows to explore invitation details and finishes.</p>
-            </div>
-
-            <?php if ($gallery): ?>
-                <div class="service-carousel" data-service-carousel>
-                    <div class="service-carousel-toolbar">
-                        <span class="service-carousel-count"><strong data-carousel-current>1</strong> / <?= count($gallery); ?></span>
-                        <div class="service-carousel-controls">
-                            <button type="button" data-carousel-prev aria-label="Previous gallery items">←</button>
-                            <button type="button" data-carousel-next aria-label="Next gallery items">→</button>
-                        </div>
-                    </div>
-                    <div class="service-carousel-viewport" data-carousel-viewport tabindex="0">
-                        <div class="service-carousel-track">
-                            <?php foreach ($gallery as $index => $image): ?>
-                                <a class="service-carousel-slide" href="product.php?slug=<?= rawurlencode((string)$image['slug']); ?>" data-carousel-slide>
-                                    <div class="service-carousel-image">
-                                        <img src="<?= sf_e(sf_media_path((string)$image['image_path'], 'banner.png')); ?>" alt="<?= sf_e($image['alt_text'] ?? $image['product_name']); ?>" loading="<?= $index < 3 ? 'eager' : 'lazy'; ?>">
-                                    </div>
-                                    <div class="service-carousel-caption">
-                                        <span>View design</span>
-                                        <strong><?= sf_e($image['product_name']); ?></strong>
-                                    </div>
-                                </a>
-                            <?php endforeach; ?>
-                        </div>
-                    </div>
-                </div>
-            <?php else: ?>
-                <div class="service-gallery-empty">
-                    <span>✦</span>
-                    <p>New gallery images will appear here automatically when product images are added in the admin panel.</p>
-                </div>
-            <?php endif; ?>
-        </div>
-    </section>
-
     <section class="section page-process-section" aria-labelledby="processHeading">
         <div class="container">
-            <div class="section-title page-section-title">
+            <div class="section-title page-section-title ramki-emerge">
                 <div class="decor-line"></div>
                 <span>Simple from start to finish</span>
                 <h2 id="processHeading"><?= sf_e($customSection['section_title'] ?? 'Your idea,'); ?> <em><?= sf_e($customSection['section_subtitle'] ?? 'beautifully made'); ?></em></h2>
             </div>
             <div class="page-process-grid">
                 <?php foreach ($customSteps as $index => $step): ?>
-                    <article class="page-process-card">
+                    <article class="page-process-card ramki-emerge" style="--ramki-delay: <?= min($index, 4) * 95; ?>ms">
                         <span class="page-process-number"><?= str_pad((string)($index + 1), 2, '0', STR_PAD_LEFT); ?></span>
                         <span class="page-process-icon" aria-hidden="true"><?= sf_e($step['icon_class'] ?: '✦'); ?></span>
                         <h3><?= sf_e($step['item_title'] ?? 'Step'); ?></h3>
@@ -247,7 +266,7 @@ require __DIR__ . '/includes/storefront-header.php';
     </section>
 
     <section class="page-cta-section">
-        <div class="container page-cta-inner">
+        <div class="container page-cta-inner ramki-emerge ramki-emerge-scale">
             <div>
                 <span>Custom ideas welcome</span>
                 <h2>Have something special in mind?</h2>
@@ -263,68 +282,41 @@ require __DIR__ . '/includes/storefront-header.php';
 
 <script>
 (() => {
-    const carousel = document.querySelector('[data-service-carousel]');
-    if (!carousel) return;
+    const items = [...document.querySelectorAll('.ramki-emerge')];
+    if (!items.length) return;
 
-    const viewport = carousel.querySelector('[data-carousel-viewport]');
-    const slides = [...carousel.querySelectorAll('[data-carousel-slide]')];
-    const current = carousel.querySelector('[data-carousel-current]');
-    const previous = carousel.querySelector('[data-carousel-prev]');
-    const next = carousel.querySelector('[data-carousel-next]');
+    const revealAll = () => items.forEach(item => item.classList.add('is-visible'));
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    let timer = null;
 
-    const closestIndex = () => {
-        const left = viewport.scrollLeft;
-        let best = 0;
-        let distance = Number.POSITIVE_INFINITY;
-        slides.forEach((slide, index) => {
-            const delta = Math.abs(slide.offsetLeft - left);
-            if (delta < distance) {
-                distance = delta;
-                best = index;
+    if (reducedMotion || !('IntersectionObserver' in window)) {
+        revealAll();
+        return;
+    }
+
+    const observer = new IntersectionObserver(entries => {
+        entries.forEach(entry => {
+            if (!entry.isIntersecting) return;
+            entry.target.classList.add('is-visible');
+            observer.unobserve(entry.target);
+        });
+    }, {
+        threshold: 0.12,
+        rootMargin: '0px 0px -8% 0px'
+    });
+
+    items.forEach(item => observer.observe(item));
+
+    window.setTimeout(() => {
+        items.forEach(item => {
+            if (item.getBoundingClientRect().top < window.innerHeight * 1.15) {
+                item.classList.add('is-visible');
             }
         });
-        return best;
-    };
+    }, 450);
 
-    const updateCurrent = () => {
-        if (current) current.textContent = String(closestIndex() + 1);
-    };
-
-    const move = direction => {
-        viewport.scrollBy({
-            left: viewport.clientWidth * 0.88 * direction,
-            behavior: reducedMotion ? 'auto' : 'smooth'
-        });
-    };
-
-    previous?.addEventListener('click', () => move(-1));
-    next?.addEventListener('click', () => move(1));
-    viewport.addEventListener('scroll', updateCurrent, { passive: true });
-
-    const startAuto = () => {
-        if (reducedMotion || slides.length < 2) return;
-        window.clearInterval(timer);
-        timer = window.setInterval(() => {
-            const atEnd = viewport.scrollLeft + viewport.clientWidth >= viewport.scrollWidth - 8;
-            viewport.scrollTo({
-                left: atEnd ? 0 : viewport.scrollLeft + viewport.clientWidth * 0.88,
-                behavior: 'smooth'
-            });
-        }, 5500);
-    };
-
-    const stopAuto = () => window.clearInterval(timer);
-    carousel.addEventListener('mouseenter', stopAuto);
-    carousel.addEventListener('mouseleave', startAuto);
-    carousel.addEventListener('focusin', stopAuto);
-    carousel.addEventListener('focusout', startAuto);
-    carousel.addEventListener('touchstart', stopAuto, { passive: true });
-    carousel.addEventListener('touchend', startAuto, { passive: true });
-    window.addEventListener('resize', updateCurrent);
-    startAuto();
+    window.setTimeout(revealAll, 4500);
 })();
 </script>
+
 
 <?php require __DIR__ . '/includes/storefront-footer.php'; ?>

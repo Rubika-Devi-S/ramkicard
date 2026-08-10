@@ -1274,6 +1274,517 @@ $error = trim((string)($_GET['error'] ?? ''));
     }
 }
 
+/* ================================================================
+   Ramki Cards premium product presentation
+   Reference structure adapted to the maroon, antique-gold and ivory theme.
+   ================================================================ */
+.product-marketplace-page {
+    padding: 22px 0 72px;
+    background:
+        radial-gradient(circle at 92% 4%, rgba(213, 166, 77, .13), transparent 28%),
+        linear-gradient(180deg, #fffdf9 0%, #fbf5eb 100%);
+}
+
+.product-marketplace-page .product-marketplace-shell {
+    width: min(1500px, calc(100% - 48px));
+}
+
+.product-breadcrumb {
+    gap: 7px;
+    margin-bottom: 16px;
+    color: #8b7a70;
+    font-size: 13px;
+}
+
+.product-breadcrumb a {
+    color: #6f172b;
+    font-weight: 600;
+}
+
+.product-breadcrumb a:hover { color: #c38b2f; }
+
+.product-marketplace-page .product-detail-grid {
+    grid-template-columns: minmax(520px, 1.08fr) minmax(430px, .92fr);
+    gap: 28px;
+}
+
+.product-marketplace-page .product-marketplace-media,
+.product-marketplace-page .marketplace-product-info {
+    overflow: hidden;
+    background: rgba(255, 255, 255, .94);
+    border: 1px solid rgba(184, 132, 45, .25);
+    border-radius: 22px;
+    box-shadow: 0 22px 55px rgba(83, 39, 32, .09);
+    animation: ramkiProductRise .62s cubic-bezier(.22, 1, .36, 1) both;
+}
+
+.product-marketplace-page .marketplace-product-info {
+    animation-delay: .08s;
+}
+
+@keyframes ramkiProductRise {
+    from { opacity: 0; transform: translate3d(0, 18px, 0); }
+    to { opacity: 1; transform: none; }
+}
+
+.product-marketplace-page .product-marketplace-media {
+    top: 105px;
+    padding: 18px;
+}
+
+.marketplace-gallery-layout {
+    grid-template-columns: 82px minmax(0, 1fr);
+    gap: 16px;
+    min-height: 610px;
+}
+
+.marketplace-image-stage {
+    min-height: 610px;
+    padding: 22px;
+    background:
+        radial-gradient(circle at 50% 42%, #fff 0%, #fffdf8 62%, #faf1e3 100%);
+    border: 1px solid rgba(192, 139, 50, .18);
+    border-radius: 16px;
+}
+
+.product-marketplace-page .product-media-panel .product-main-image {
+    max-width: 620px;
+    height: 570px;
+    transition: opacity .18s ease, transform .28s ease;
+}
+
+.product-marketplace-page .product-media-panel .product-main-image.is-changing {
+    opacity: .3;
+    transform: scale(.985);
+}
+
+.product-marketplace-page .product-media-panel .product-gallery {
+    width: 82px;
+    max-height: 610px;
+    gap: 10px;
+    padding-right: 5px;
+}
+
+.product-marketplace-page .product-media-panel .product-gallery-thumb {
+    flex-basis: 74px;
+    width: 74px;
+    height: 74px;
+    padding: 4px;
+    border: 1px solid rgba(132, 93, 34, .25);
+    border-radius: 11px;
+    transition: border-color .18s ease, box-shadow .18s ease, transform .18s ease;
+}
+
+.product-marketplace-page .product-media-panel .product-gallery-thumb:hover {
+    border-color: #c69035;
+    transform: translateY(-2px);
+}
+
+.product-marketplace-page .product-media-panel .product-gallery-thumb.active {
+    border-color: #8f1231;
+    box-shadow: 0 0 0 3px rgba(143, 18, 49, .10);
+}
+
+.marketplace-action-bar { margin-top: 16px; }
+
+.marketplace-action {
+    min-height: 56px;
+    border-radius: 12px;
+    letter-spacing: .35px;
+    box-shadow: 0 12px 26px rgba(105, 24, 42, .15);
+}
+
+.marketplace-action.cart-action {
+    color: #5e1325;
+    background: linear-gradient(135deg, #e2b557, #c89030);
+}
+
+.marketplace-action.login-action {
+    background: linear-gradient(135deg, #a5163b, #721126);
+}
+
+.marketplace-media-note {
+    color: #746461;
+    border-color: rgba(171, 122, 44, .18);
+    font-size: 11px;
+}
+
+.product-marketplace-page .marketplace-product-info {
+    padding: 34px 38px 38px;
+}
+
+.marketplace-product-kicker {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 11px;
+}
+
+.marketplace-category-link,
+.marketplace-sku {
+    margin: 0;
+    color: #a16d22;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1.15px;
+    text-transform: uppercase;
+}
+
+.marketplace-kicker-divider { color: #d2ad70; }
+
+.product-marketplace-page .marketplace-product-info h1 {
+    margin-bottom: 8px;
+    color: #681126;
+    font-family: "Playfair Display", Georgia, serif;
+    font-size: clamp(28px, 3vw, 42px);
+    font-weight: 700;
+    line-height: 1.14;
+}
+
+.marketplace-tamil-title { color: #8a3146; }
+
+.marketplace-short-copy {
+    max-width: 740px;
+    margin-top: 12px;
+    color: #6f5e5a;
+    font-size: 14px;
+    line-height: 1.75;
+}
+
+.marketplace-meta-row { margin: 14px 0 8px; }
+
+.marketplace-assurance,
+.marketplace-stock {
+    padding: 6px 10px;
+    border-radius: 999px;
+}
+
+.marketplace-assurance {
+    color: #661226;
+    background: #f1d494;
+}
+
+.marketplace-price-area {
+    padding: 18px 0;
+    border-color: rgba(134, 87, 33, .16);
+}
+
+.marketplace-special-price { color: #8f1231; }
+
+.product-marketplace-page .marketplace-price-row .detail-price {
+    color: #8f1231;
+    font-family: "Playfair Display", Georgia, serif;
+    font-size: 34px;
+}
+
+.marketplace-discount { color: #ad7621; }
+
+.marketplace-offers {
+    margin: 14px 0 0;
+    padding: 15px 17px;
+    background: #fff9ef;
+    border: 1px solid rgba(190, 135, 42, .18);
+    border-radius: 14px;
+}
+
+.marketplace-section-title {
+    color: #4b2029;
+    font-size: 16px;
+}
+
+.marketplace-offer-icon { color: #b17c27; }
+
+.marketplace-product-options {
+    padding: 22px 0 12px;
+    border-color: rgba(134, 87, 33, .16);
+}
+
+.marketplace-product-options-head { margin-bottom: 15px; }
+
+.variant-picker legend {
+    margin-bottom: 12px;
+    color: #4d2630;
+    font-size: 15px;
+    font-weight: 700;
+}
+
+.variant-options {
+    gap: 15px;
+    padding: 4px 4px 12px;
+    scrollbar-color: #d0a75d transparent;
+}
+
+/* Round colour choices inspired by the reference, in Ramki styling. */
+.colour-variant-picker .variant-option {
+    flex: 0 0 82px;
+}
+
+.colour-variant-picker .variant-option-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    min-height: 0;
+    padding: 2px;
+    background: transparent;
+    border: 0;
+    border-radius: 0;
+}
+
+.colour-variant-picker .variant-option:hover .variant-option-card,
+.colour-variant-picker .variant-option>input:checked+.variant-option-card {
+    background: transparent;
+    border: 0;
+    box-shadow: none;
+    transform: translateY(-2px);
+}
+
+.colour-variant-picker .variant-option-thumb {
+    width: 70px;
+    height: 70px;
+    padding: 4px;
+    background: #fff;
+    border: 2px solid #e3d4bd;
+    border-radius: 50%;
+    box-shadow: 0 5px 14px rgba(74, 35, 28, .08);
+    transition: border-color .18s ease, box-shadow .18s ease, transform .18s ease;
+}
+
+.colour-variant-picker .variant-option-thumb img,
+.colour-variant-picker .variant-color-swatch {
+    border-radius: 50%;
+}
+
+.colour-variant-picker .variant-option:hover .variant-option-thumb {
+    border-color: #c38b2f;
+    transform: scale(1.035);
+}
+
+.colour-variant-picker .variant-option>input:checked+.variant-option-card .variant-option-thumb {
+    border-color: #8f1231;
+    box-shadow:
+        0 0 0 3px #f1d494,
+        0 8px 20px rgba(93, 18, 38, .16);
+}
+
+.colour-variant-picker .variant-option-check {
+    top: -1px;
+    right: 4px;
+    background: #8f1231;
+    border-color: #f4d897;
+}
+
+.colour-variant-picker .variant-option-name {
+    display: block;
+    max-width: 82px;
+    color: #50333a;
+    font-size: 10px;
+    line-height: 1.25;
+    white-space: normal;
+}
+
+.colour-variant-picker .variant-option-price {
+    color: #9a6720;
+    font-size: 9px;
+}
+
+.design-variant-picker { margin-top: 11px !important; }
+
+.design-variant-picker .variant-option { flex-basis: 100px; }
+
+.design-variant-picker .variant-option-card {
+    min-height: 122px;
+    background: #fffdf8;
+    border-color: #e8d9c3;
+    border-radius: 12px;
+}
+
+.design-variant-picker .variant-option-thumb {
+    width: 82px;
+    height: 74px;
+    border-radius: 8px;
+}
+
+.design-variant-picker .variant-option>input:checked+.variant-option-card {
+    background: #fff8f3;
+    border-color: #8f1231;
+    box-shadow: 0 0 0 2px rgba(143, 18, 49, .10);
+}
+
+.marketplace-product-tabs {
+    margin-top: 22px;
+    border: 1px solid rgba(156, 105, 39, .18);
+    border-radius: 14px;
+    overflow: hidden;
+}
+
+.marketplace-tab-list {
+    display: flex;
+    overflow-x: auto;
+    background: #f8efe1;
+    scrollbar-width: thin;
+}
+
+.marketplace-tab {
+    flex: 0 0 auto;
+    min-height: 50px;
+    padding: 12px 17px;
+    color: #6c5352;
+    font: inherit;
+    font-size: 12px;
+    font-weight: 700;
+    background: transparent;
+    border: 0;
+    border-bottom: 3px solid transparent;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.marketplace-tab:hover { color: #8f1231; }
+
+.marketplace-tab.active {
+    color: #7d112c;
+    background: #fffdf9;
+    border-bottom-color: #c69235;
+}
+
+.marketplace-tab-panel {
+    min-height: 116px;
+    padding: 20px;
+    color: #5f4b4b;
+    font-size: 13px;
+    line-height: 1.75;
+}
+
+.marketplace-tab-panel p { margin: 0 0 8px; }
+.marketplace-tab-panel p:last-child { margin-bottom: 0; }
+
+.marketplace-tab-specs {
+    display: grid;
+    grid-template-columns: minmax(120px, .45fr) minmax(0, 1fr);
+    gap: 9px 18px;
+}
+
+.marketplace-tab-specs span { color: #907d75; }
+.marketplace-tab-specs strong { color: #4f3037; }
+
+.product-marketplace-page .marketplace-purchase-box {
+    margin-top: 24px;
+    padding: 22px;
+    background: #fffaf2;
+    border: 1px solid rgba(179, 124, 40, .2);
+    border-radius: 14px;
+}
+
+.product-marketplace-page .marketplace-purchase-box input,
+.product-marketplace-page .marketplace-purchase-box textarea {
+    border-color: #dfcfb9;
+    border-radius: 9px;
+}
+
+.product-marketplace-page .marketplace-cart-form>.submit-btn[data-add-button],
+.product-marketplace-page .marketplace-enquiry-box>.submit-btn {
+    min-height: 50px;
+    color: #fff;
+    background: linear-gradient(135deg, #a4163b, #741126);
+    border-radius: 10px;
+    box-shadow: 0 11px 25px rgba(111, 16, 39, .18);
+}
+
+@media (max-width: 1180px) {
+    .product-marketplace-page .product-detail-grid {
+        grid-template-columns: minmax(440px, 1fr) minmax(390px, .95fr);
+        gap: 20px;
+    }
+
+    .marketplace-gallery-layout,
+    .marketplace-image-stage { min-height: 520px; }
+
+    .product-marketplace-page .product-media-panel .product-main-image { height: 480px; }
+}
+
+@media (max-width: 960px) {
+    .product-marketplace-page .product-marketplace-shell {
+        width: min(100% - 28px, 760px);
+    }
+
+    .product-marketplace-page .product-detail-grid { grid-template-columns: 1fr; }
+    .product-marketplace-page .product-marketplace-media { position: static; }
+}
+
+@media (max-width: 700px) {
+    .product-marketplace-page { padding-top: 10px; }
+
+    .product-marketplace-page .product-marketplace-shell {
+        width: 100%;
+    }
+
+    .product-marketplace-page .product-marketplace-media,
+    .product-marketplace-page .marketplace-product-info {
+        border-radius: 0;
+    }
+
+    .product-marketplace-page .marketplace-product-info { padding: 24px 17px 30px; }
+
+    .marketplace-gallery-layout,
+    .marketplace-gallery-layout.no-thumbnails {
+        flex-direction: column;
+    }
+
+    .product-marketplace-page .product-media-panel .product-gallery {
+        order: 2;
+    }
+
+    .marketplace-image-stage {
+        order: 1;
+        min-height: 350px;
+        border-radius: 12px;
+    }
+
+    .product-marketplace-page .product-media-panel .product-main-image {
+        height: 330px;
+        max-height: 330px;
+    }
+
+    .product-marketplace-page .marketplace-product-info h1 { font-size: 28px; }
+
+    .marketplace-offers { margin-right: -2px; margin-left: -2px; }
+
+    .marketplace-tab-panel { padding: 17px; }
+
+    .product-marketplace-page .marketplace-purchase-box {
+        margin-right: -4px;
+        margin-left: -4px;
+        padding: 18px 14px;
+    }
+}
+
+@media (max-width: 420px) {
+    .marketplace-image-stage { min-height: 305px; }
+
+    .product-marketplace-page .product-media-panel .product-main-image {
+        height: 285px;
+        max-height: 285px;
+    }
+
+    .colour-variant-picker .variant-option { flex-basis: 74px; }
+
+    .colour-variant-picker .variant-option-thumb {
+        width: 62px;
+        height: 62px;
+    }
+
+    .marketplace-tab { padding-right: 14px; padding-left: 14px; }
+
+    .marketplace-tab-specs {
+        grid-template-columns: 1fr;
+        gap: 2px;
+    }
+
+    .marketplace-tab-specs strong { margin-bottom: 8px; }
+}
+
 @media (prefers-reduced-motion: reduce) {
     .product-enquiry-toast {
         transition: none;
@@ -1281,6 +1792,13 @@ $error = trim((string)($_GET['error'] ?? ''));
 
     .product-enquiry-toast-progress::after {
         animation: none;
+    }
+
+    .product-marketplace-page .product-marketplace-media,
+    .product-marketplace-page .marketplace-product-info,
+    .product-marketplace-page .product-media-panel .product-main-image {
+        animation: none;
+        transition: none;
     }
 }
 </style>
@@ -1362,10 +1880,16 @@ $error = trim((string)($_GET['error'] ?? ''));
             </section>
 
             <section class="product-detail-copy marketplace-product-info">
-                <a class="marketplace-category-link"
-                    href="products.php?category=<?= rawurlencode((string)$product['category_slug']); ?>">
-                    <?= sf_e($product['category_name']); ?>
-                </a>
+                <div class="marketplace-product-kicker">
+                    <a class="marketplace-category-link"
+                        href="products.php?category=<?= rawurlencode((string)$product['category_slug']); ?>">
+                        <?= sf_e($product['category_name']); ?>
+                    </a>
+                    <?php if (!empty($product['sku'])): ?>
+                    <span class="marketplace-kicker-divider" aria-hidden="true">•</span>
+                    <span class="marketplace-sku">SKU: <?= sf_e($product['sku']); ?></span>
+                    <?php endif; ?>
+                </div>
 
                 <h1><?= sf_e($product['product_name']); ?></h1>
 
@@ -1386,9 +1910,6 @@ $error = trim((string)($_GET['error'] ?? ''));
                     <span class="marketplace-stock <?= $inStock ? 'in-stock' : 'out-of-stock'; ?>">
                         <?= $inStock ? 'In Stock' : 'Currently Unavailable'; ?>
                     </span>
-                    <?php if (!empty($product['sku'])): ?>
-                    <span class="marketplace-sku">SKU: <?= sf_e($product['sku']); ?></span>
-                    <?php endif; ?>
                 </div>
 
                 <div class="marketplace-price-area">
@@ -1397,7 +1918,8 @@ $error = trim((string)($_GET['error'] ?? ''));
                     <?php endif; ?>
 
                     <div class="marketplace-price-row">
-                        <div class="detail-price">
+                        <div class="detail-price" id="marketplaceCurrentPrice"
+                            data-base-price="<?= sf_e((string)$effectivePrice); ?>">
                             <?= sf_e(sf_money($effectivePrice)); ?>
                         </div>
 
@@ -1438,40 +1960,15 @@ $error = trim((string)($_GET['error'] ?? ''));
                     </div>
                 </div>
 
-                <div class="marketplace-specs">
-                    <div class="marketplace-spec-row">
-                        <span>Minimum Order</span>
-                        <span><?= $minimumOrderQty; ?> pieces</span>
-                    </div>
-                    <div class="marketplace-spec-row">
-                        <span>Quantity Step</span>
-                        <span><?= $quantityStep; ?> pieces</span>
-                    </div>
-                    <div class="marketplace-spec-row">
-                        <span>Availability</span>
-                        <span>
-                            <?php if ($inStock): ?>
-                            Available for ordering
-                            <?php else: ?>
-                            Stock is below the minimum order quantity
-                            <?php endif; ?>
-                        </span>
-                    </div>
-                    <div class="marketplace-spec-row">
-                        <span>Delivery</span>
-                        <span>Delivery details will be confirmed with your order.</span>
-                    </div>
-                </div>
-
                 <?php if ($colors || $designs): ?>
                 <section class="marketplace-product-options" aria-labelledby="productOptionsTitle">
                     <div class="marketplace-product-options-head">
-                        <h2 class="marketplace-section-title" id="productOptionsTitle">Product Options</h2>
+                        <h2 class="marketplace-section-title" id="productOptionsTitle">Choose Your Style</h2>
                     </div>
 
                     <?php if ($colors): ?>
-                    <fieldset class="variant-picker">
-                        <legend>Colour</legend>
+                    <fieldset class="variant-picker colour-variant-picker">
+                        <legend>Colour variants</legend>
 
                         <div class="variant-options" role="group" aria-label="Available product colours">
                             <?php foreach ($colors as $color): ?>
@@ -1499,6 +1996,7 @@ $error = trim((string)($_GET['error'] ?? ''));
                                 <input type="checkbox" value="<?= (int)$color['id']; ?>" data-product-variant-choice
                                     data-variant-kind="colour" data-variant-field="color_variant_id"
                                     data-variant-preview="<?= sf_e($colorPreviewImage); ?>"
+                                    data-variant-price="<?= sf_e((string)(float)$color['price_adjustment']); ?>"
                                     data-variant-label="<?= sf_e($color['color_name']); ?>">
 
                                 <span class="variant-option-card">
@@ -1533,8 +2031,8 @@ $error = trim((string)($_GET['error'] ?? ''));
                     <?php endif; ?>
 
                     <?php if ($designs): ?>
-                    <fieldset class="variant-picker">
-                        <legend>Design</legend>
+                    <fieldset class="variant-picker design-variant-picker">
+                        <legend>Design variants</legend>
 
                         <div class="variant-options" role="group" aria-label="Available product designs">
                             <?php foreach ($designs as $design): ?>
@@ -1552,6 +2050,7 @@ $error = trim((string)($_GET['error'] ?? ''));
                                 <input type="checkbox" value="<?= (int)$design['id']; ?>" data-product-variant-choice
                                     data-variant-kind="design" data-variant-field="design_variant_id"
                                     data-variant-preview="<?= sf_e($designPreviewImage); ?>"
+                                    data-variant-price="<?= sf_e((string)(float)$design['price_adjustment']); ?>"
                                     data-variant-label="<?= sf_e($design['design_name']); ?>">
 
                                 <span class="variant-option-card">
@@ -1582,16 +2081,63 @@ $error = trim((string)($_GET['error'] ?? ''));
                 </section>
                 <?php endif; ?>
 
-                <div class="marketplace-description-block">
-                    <h2 class="marketplace-section-title">Product Description</h2>
-                    <div class="product-description">
-                        <?= nl2br(sf_e(
-                  $product['description']
-                  ?: $product['short_description']
-                  ?: 'Contact us for complete product details and customization options.'
-              )); ?>
+                <section class="marketplace-product-tabs" aria-label="Product information">
+                    <div class="marketplace-tab-list" role="tablist" aria-label="Product information tabs">
+                        <button class="marketplace-tab active" type="button" role="tab" aria-selected="true"
+                            aria-controls="productTabDescription" id="productTabButtonDescription"
+                            data-product-tab="description">Description</button>
+                        <button class="marketplace-tab" type="button" role="tab" aria-selected="false"
+                            aria-controls="productTabPrinting" id="productTabButtonPrinting"
+                            data-product-tab="printing">Printing</button>
+                        <button class="marketplace-tab" type="button" role="tab" aria-selected="false"
+                            aria-controls="productTabShipping" id="productTabButtonShipping"
+                            data-product-tab="shipping">Shipping</button>
+                        <button class="marketplace-tab" type="button" role="tab" aria-selected="false"
+                            aria-controls="productTabInformation" id="productTabButtonInformation"
+                            data-product-tab="information">Additional Information</button>
                     </div>
-                </div>
+
+                    <div class="marketplace-tab-panel active" id="productTabDescription" role="tabpanel"
+                        aria-labelledby="productTabButtonDescription" data-product-tab-panel="description">
+                        <div class="product-description">
+                            <?= nl2br(sf_e(
+                      $product['description']
+                      ?: $product['short_description']
+                      ?: 'Contact us for complete product details and customization options.'
+                  )); ?>
+                        </div>
+                    </div>
+
+                    <div class="marketplace-tab-panel" id="productTabPrinting" role="tabpanel"
+                        aria-labelledby="productTabButtonPrinting" data-product-tab-panel="printing" hidden>
+                        <p>Names, wording, language, colours and print finishing can be confirmed with our team before production.</p>
+                        <?php if ($colors): ?>
+                        <p><strong>Available colours:</strong>
+                            <?= sf_e(implode(', ', array_column($colors, 'color_name'))); ?></p>
+                        <?php endif; ?>
+                        <?php if ($designs): ?>
+                        <p><strong>Available designs:</strong>
+                            <?= sf_e(implode(', ', array_column($designs, 'design_name'))); ?></p>
+                        <?php endif; ?>
+                    </div>
+
+                    <div class="marketplace-tab-panel" id="productTabShipping" role="tabpanel"
+                        aria-labelledby="productTabButtonShipping" data-product-tab-panel="shipping" hidden>
+                        <p>Delivery availability and the expected dispatch date will be confirmed after quantity, customization and destination are reviewed.</p>
+                    </div>
+
+                    <div class="marketplace-tab-panel" id="productTabInformation" role="tabpanel"
+                        aria-labelledby="productTabButtonInformation" data-product-tab-panel="information" hidden>
+                        <div class="marketplace-tab-specs">
+                            <span>Minimum order</span><strong><?= $minimumOrderQty; ?> pieces</strong>
+                            <span>Quantity step</span><strong><?= $quantityStep; ?> pieces</strong>
+                            <span>Availability</span><strong><?= $inStock ? 'Available for ordering' : 'Currently unavailable'; ?></strong>
+                            <?php if (!empty($product['sku'])): ?>
+                            <span>Product code</span><strong><?= sf_e($product['sku']); ?></strong>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                </section>
 
                 <?php if ($cartStatus === 'added'): ?>
                 <div class="purchase-message success">
@@ -1742,20 +2288,36 @@ $error = trim((string)($_GET['error'] ?? ''));
 </main>
 
 <script>
+let productPreviewTimer = 0;
+
+function setProductPreview(source, alternativeText) {
+    const main = document.getElementById('mainProductImage');
+
+    if (!main || !source) {
+        return;
+    }
+
+    window.clearTimeout(productPreviewTimer);
+    main.classList.add('is-changing');
+
+    productPreviewTimer = window.setTimeout(() => {
+        main.src = source;
+        main.alt = alternativeText || main.dataset.defaultAlt || 'Product';
+
+        window.requestAnimationFrame(() => {
+            main.classList.remove('is-changing');
+        });
+    }, 90);
+}
+
 document.querySelectorAll('[data-gallery-image]').forEach(image => {
     image.addEventListener('click', () => {
-        const main = document.getElementById('mainProductImage');
-
         document.querySelectorAll('[data-gallery-image]').forEach(item => {
             item.classList.remove('active');
         });
 
         image.classList.add('active');
-
-        if (main) {
-            main.src = image.src;
-            main.alt = image.alt;
-        }
+        setProductPreview(image.src, image.alt);
     });
 });
 
@@ -1791,18 +2353,45 @@ function showVariantPreview(preferredChoice = null) {
     });
 
     if (selected && selected.dataset.variantPreview) {
-        main.src = selected.dataset.variantPreview;
-        main.alt = selected.dataset.variantLabel ?
+        const variantAlt = selected.dataset.variantLabel ?
             `${main.dataset.defaultAlt || 'Product'} - ${selected.dataset.variantLabel}` :
             (main.dataset.defaultAlt || 'Product');
+
+        setProductPreview(selected.dataset.variantPreview, variantAlt);
         return;
     }
 
-    main.src = main.dataset.defaultSrc || main.src;
-    main.alt = main.dataset.defaultAlt || 'Product';
+    setProductPreview(
+        main.dataset.defaultSrc || main.src,
+        main.dataset.defaultAlt || 'Product'
+    );
 
     const firstGalleryImage = document.querySelector('[data-gallery-image]');
     firstGalleryImage?.classList.add('active');
+}
+
+function updateVariantPrice() {
+    const price = document.getElementById('marketplaceCurrentPrice');
+
+    if (!price) {
+        return;
+    }
+
+    const basePrice = Number.parseFloat(price.dataset.basePrice || '0');
+    const adjustment = productVariantChoices.reduce((total, choice) => {
+        if (!choice.checked) {
+            return total;
+        }
+
+        return total + Number.parseFloat(choice.dataset.variantPrice || '0');
+    }, 0);
+
+    price.textContent = new Intl.NumberFormat('en-IN', {
+        style: 'currency',
+        currency: 'INR',
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    }).format(Math.max(0, basePrice + adjustment));
 }
 
 productVariantChoices.forEach(choice => {
@@ -1822,8 +2411,55 @@ productVariantChoices.forEach(choice => {
 
         syncSelectedVariant(kind);
         showVariantPreview(choice);
+        updateVariantPrice();
     });
 });
+
+updateVariantPrice();
+
+(() => {
+    'use strict';
+
+    const tabs = Array.from(document.querySelectorAll('[data-product-tab]'));
+    const panels = Array.from(document.querySelectorAll('[data-product-tab-panel]'));
+
+    const activateTab = tab => {
+        const target = tab.dataset.productTab;
+
+        tabs.forEach(item => {
+            const active = item === tab;
+            item.classList.toggle('active', active);
+            item.setAttribute('aria-selected', active ? 'true' : 'false');
+            item.tabIndex = active ? 0 : -1;
+        });
+
+        panels.forEach(panel => {
+            const active = panel.dataset.productTabPanel === target;
+            panel.classList.toggle('active', active);
+            panel.hidden = !active;
+        });
+    };
+
+    tabs.forEach((tab, index) => {
+        tab.addEventListener('click', () => activateTab(tab));
+        tab.addEventListener('keydown', event => {
+            if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) {
+                return;
+            }
+
+            event.preventDefault();
+            let nextIndex = index;
+
+            if (event.key === 'ArrowRight') nextIndex = (index + 1) % tabs.length;
+            if (event.key === 'ArrowLeft') nextIndex = (index - 1 + tabs.length) % tabs.length;
+            if (event.key === 'Home') nextIndex = 0;
+            if (event.key === 'End') nextIndex = tabs.length - 1;
+
+            activateTab(tabs[nextIndex]);
+            tabs[nextIndex].focus();
+        });
+    });
+})();
 
 (() => {
     'use strict';
@@ -1950,6 +2586,12 @@ productVariantChoices.forEach(choice => {
             );
 
             form.reset();
+
+            Array.from(new Set(
+                productVariantChoices.map(choice => choice.dataset.variantKind)
+            )).forEach(kind => syncSelectedVariant(kind || ''));
+
+            updateVariantPrice();
 
             const quantity = form.querySelector(
                 'input[name="quantity"]'
