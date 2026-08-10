@@ -61,6 +61,7 @@ $productsUrl = 'products.php';
     <link href="assets/css/storefront.css?v=20260730-8" rel="stylesheet">
     <link href="assets/css/storefront-auth-gate.css?v=20260730-2" rel="stylesheet">
     <link href="assets/css/storefront-commerce-ui.css?v=20260730-1" rel="stylesheet">
+    <link href="assets/css/storefront-pages.css?v=20260808-1" rel="stylesheet">
     <style>
     .store-nav-actions .storefront-logout-button {
         display: inline-flex !important;
@@ -106,9 +107,9 @@ $productsUrl = 'products.php';
                             Products
                         </a>
                     </li>
-                    <li><a href="index.php#services">Services</a></li>
+                    <li><a href="services.php">Services</a></li>
                     <li><a href="index.php#custom">Custom Design</a></li>
-                    <li><a href="index.php#why">About</a></li>
+                    <li><a href="about.php">About</a></li>
                     <li><a href="index.php#contact">Contact</a></li>
                 </ul>
             </nav>

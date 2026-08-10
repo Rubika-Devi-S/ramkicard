@@ -73,8 +73,9 @@ if (!preg_match('#^https?://#i', $logoPath)) {
               Products
             </a>
           </li>
-          <li><a href="<?= sf_e($storefrontBase); ?>index.php#services">Services</a></li>
+          <li><a href="<?= sf_e($storefrontBase); ?>services.php">Services</a></li>
           <li><a href="<?= sf_e($storefrontBase); ?>index.php#custom">Custom Design</a></li>
+          <li><a href="<?= sf_e($storefrontBase); ?>about.php">About Us</a></li>
           <li><a href="<?= sf_e($storefrontBase); ?>index.php#contact">Contact Us</a></li>
         </ul>
       </div>
