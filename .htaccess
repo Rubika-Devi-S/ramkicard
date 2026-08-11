@@ -1,4 +1,4 @@
-# Ramki Cards - Apache configuration (download template; deploy as .htaccess)
+# Ramki Cards - Apache configuration
 
 DirectoryIndex index.php index.html
 Options -Indexes -MultiViews
@@ -12,46 +12,23 @@ Options -Indexes -MultiViews
     RewriteCond %{HTTP:X-Forwarded-Proto} !https [NC]
     RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [R=301,L,NE]
 
-    # Remove index.php from any browser URL while preserving the full web path.
-    # Examples:
-    #   /index.php                    -> /
-    #   /git/ramkicard/index.php      -> /git/ramkicard/
-    #   /git/ramkicard/admin/index.php -> /git/ramkicard/admin/
-    #
-    # The redirect target is captured from THE_REQUEST instead of using "./".
-    # This prevents WAMP from exposing C:/wamp64/www/... as a browser URL.
-    # Permanent redirect on the live domain.
+    # Remove root index.php from browser URLs for GET and HEAD requests.
     RewriteCond %{REQUEST_METHOD} ^(?:GET|HEAD)$ [NC]
-    RewriteCond %{HTTP_HOST} !^(localhost|127\.0\.0\.1)(:[0-9]+)?$ [NC]
     RewriteCond %{THE_REQUEST} \s/+(.*/)?index\.php(?:[?\s]|$) [NC]
-    RewriteRule ^(?:.*/)?index\.php$ /%1 [R=301,L,NE]
+    RewriteRule ^index\.php$ ./ [R=301,L]
 
-    # Temporary redirect on localhost to avoid caching mistakes during development.
+    # Remove index.php from nested folders such as /admin/index.php.
     RewriteCond %{REQUEST_METHOD} ^(?:GET|HEAD)$ [NC]
-    RewriteCond %{HTTP_HOST} ^(localhost|127\.0\.0\.1)(:[0-9]+)?$ [NC]
     RewriteCond %{THE_REQUEST} \s/+(.*/)?index\.php(?:[?\s]|$) [NC]
-    RewriteRule ^(?:.*/)?index\.php$ /%1 [R=302,L,NE]
+    RewriteRule ^(.+)/index\.php$ $1/ [R=301,L]
 
-    # Remove .php from every directly requested PHP page, including nested pages.
-    # Examples:
-    #   /services.php                         -> /services
-    #   /git/ramkicard/services.php           -> /git/ramkicard/services
-    #   /git/ramkicard/admin/enquiries.php    -> /git/ramkicard/admin/enquiries
-    # Query strings such as product.php?slug=... are preserved automatically.
-    # POST requests are excluded so forms, APIs and enquiry submissions keep working.
-    # Permanent clean-page redirect on the live domain.
+    # Redirect visible page.php URLs to clean /page URLs.
+    # POST requests are intentionally excluded so forms and APIs keep working.
     RewriteCond %{REQUEST_METHOD} ^(?:GET|HEAD)$ [NC]
-    RewriteCond %{HTTP_HOST} !^(localhost|127\.0\.0\.1)(:[0-9]+)?$ [NC]
     RewriteCond %{THE_REQUEST} \s/+(.+?)\.php(?:[?\s]|$) [NC]
-    RewriteRule ^(.+?)\.php$ /%1 [R=301,L,NE]
+    RewriteRule ^(.+?)\.php$ $1 [R=301,L]
 
-    # Temporary clean-page redirect on localhost.
-    RewriteCond %{REQUEST_METHOD} ^(?:GET|HEAD)$ [NC]
-    RewriteCond %{HTTP_HOST} ^(localhost|127\.0\.0\.1)(:[0-9]+)?$ [NC]
-    RewriteCond %{THE_REQUEST} \s/+(.+?)\.php(?:[?\s]|$) [NC]
-    RewriteRule ^(.+?)\.php$ /%1 [R=302,L,NE]
-
-    # Internally load the matching PHP file for every clean public/admin URL.
+    # Internally load the matching PHP file for a clean URL.
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteCond %{REQUEST_FILENAME} !-d
     RewriteCond %{REQUEST_FILENAME}.php -f
