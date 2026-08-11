@@ -1,0 +1,84 @@
+# Ramki Cards - Apache configuration
+
+DirectoryIndex index.php index.html
+Options -Indexes -MultiViews
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Redirect the live website to HTTPS. Localhost is excluded for XAMPP/WAMP.
+    RewriteCond %{HTTP_HOST} !^(localhost|127\.0\.0\.1)(:[0-9]+)?$ [NC]
+    RewriteCond %{HTTPS} !=on
+    RewriteCond %{HTTP:X-Forwarded-Proto} !https [NC]
+    RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [R=301,L,NE]
+
+    # Remove root index.php from browser URLs for GET and HEAD requests.
+    RewriteCond %{REQUEST_METHOD} ^(?:GET|HEAD)$ [NC]
+    RewriteCond %{THE_REQUEST} \s/+(.*/)?index\.php(?:[?\s]|$) [NC]
+    RewriteRule ^index\.php$ ./ [R=301,L]
+
+    # Remove index.php from nested folders such as /admin/index.php.
+    RewriteCond %{REQUEST_METHOD} ^(?:GET|HEAD)$ [NC]
+    RewriteCond %{THE_REQUEST} \s/+(.*/)?index\.php(?:[?\s]|$) [NC]
+    RewriteRule ^(.+)/index\.php$ $1/ [R=301,L]
+
+    # Redirect visible page.php URLs to clean /page URLs.
+    # POST requests are intentionally excluded so forms and APIs keep working.
+    RewriteCond %{REQUEST_METHOD} ^(?:GET|HEAD)$ [NC]
+    RewriteCond %{THE_REQUEST} \s/+(.+?)\.php(?:[?\s]|$) [NC]
+    RewriteRule ^(.+?)\.php$ $1 [R=301,L]
+
+    # Internally load the matching PHP file for a clean URL.
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteCond %{REQUEST_FILENAME}.php -f
+    RewriteRule ^(.+?)/?$ $1.php [QSA,L]
+</IfModule>
+
+# Block direct access to configuration, backup and database files.
+<FilesMatch "(^\.env|^\.git|composer\.(json|lock)|package(-lock)?\.json|.*\.(sql|log|ini|bak|old|dist))$">
+    Require all denied
+</FilesMatch>
+
+<IfModule mod_headers.c>
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set X-Frame-Options "SAMEORIGIN"
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+</IfModule>
+
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/html text/plain text/css text/javascript
+    AddOutputFilterByType DEFLATE application/javascript application/json application/xml
+    AddOutputFilterByType DEFLATE image/svg+xml
+</IfModule>
+
+<IfModule mod_expires.c>
+    ExpiresActive On
+    ExpiresDefault "access plus 7 days"
+
+    ExpiresByType text/html "access plus 0 seconds"
+    ExpiresByType text/css "access plus 7 days"
+    ExpiresByType application/javascript "access plus 7 days"
+    ExpiresByType application/json "access plus 0 seconds"
+
+    ExpiresByType image/jpeg "access plus 30 days"
+    ExpiresByType image/png "access plus 30 days"
+    ExpiresByType image/gif "access plus 30 days"
+    ExpiresByType image/webp "access plus 30 days"
+    ExpiresByType image/avif "access plus 30 days"
+    ExpiresByType image/svg+xml "access plus 30 days"
+
+    ExpiresByType font/woff2 "access plus 30 days"
+</IfModule>
+
+<IfModule mod_headers.c>
+    <FilesMatch "\.(css|js|jpg|jpeg|png|gif|webp|avif|svg|woff2)$">
+        Header set Cache-Control "public, max-age=2592000"
+    </FilesMatch>
+
+    <FilesMatch "\.(php|html)$">
+        Header set Cache-Control "no-cache, no-store, must-revalidate"
+        Header set Pragma "no-cache"
+        Header set Expires "0"
+    </FilesMatch>
+</IfModule>
